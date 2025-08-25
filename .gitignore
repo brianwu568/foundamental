@@ -16,3 +16,6 @@
     # Logs and temporary files
     *.log
     *.tmp
+
+    # Environment variables file
+    .env
