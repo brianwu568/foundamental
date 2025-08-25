@@ -37,18 +37,34 @@ def get_checks(checks: typing.Dict[CheckName, Check]) -> typing.List[Check]:
 def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
     return all(check.status == "succeeded" for check in get_checks(checks))
 # #########################################################################
-# Generated enums (0)
+# Generated enums (1)
 # #########################################################################
 
+class Sentiment(str, Enum):
+    Positive = "Positive"
+    Neutral = "Neutral"
+    Negative = "Negative"
+
 # #########################################################################
-# Generated classes (1)
+# Generated classes (4)
 # #########################################################################
+
+class Answer(BaseModel):
+    name: str
+    why: str
+
+class RankingResult(BaseModel):
+    answers: typing.List["Answer"]
 
 class Resume(BaseModel):
     name: str
     email: str
     experience: typing.List[str]
     skills: typing.List[str]
+
+class SentimentResult(BaseModel):
+    sentiment: Sentiment
+    confidence: float
 
 # #########################################################################
 # Generated type aliases (0)

@@ -85,6 +85,13 @@ class BamlSyncClient:
     def parse_stream(self):
       return self.__llm_stream_parser
     
+    def BrandSentiment(self, brand: str,passage: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.SentimentResult:
+        result = self.__options.merge_options(baml_options).call_function_sync(function_name="BrandSentiment", args={
+            "brand": brand,"passage": passage,
+        })
+        return typing.cast(types.SentimentResult, result.cast_to(types, types, stream_types, False, __runtime__))
     def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> types.Resume:
@@ -92,6 +99,13 @@ class BamlSyncClient:
             "resume": resume,
         })
         return typing.cast(types.Resume, result.cast_to(types, types, stream_types, False, __runtime__))
+    def RankEntities(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RankingResult:
+        result = self.__options.merge_options(baml_options).call_function_sync(function_name="RankEntities", args={
+            "query": query,"k": k,
+        })
+        return typing.cast(types.RankingResult, result.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -101,6 +115,18 @@ class BamlStreamClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def BrandSentiment(self, brand: str,passage: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[stream_types.SentimentResult, types.SentimentResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="BrandSentiment", args={
+            "brand": brand,"passage": passage,
+        })
+        return baml_py.BamlSyncStream[stream_types.SentimentResult, types.SentimentResult](
+          result,
+          lambda x: typing.cast(stream_types.SentimentResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.SentimentResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[stream_types.Resume, types.Resume]:
@@ -113,6 +139,18 @@ class BamlStreamClient:
           lambda x: typing.cast(types.Resume, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def RankEntities(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="RankEntities", args={
+            "query": query,"k": k,
+        })
+        return baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult](
+          result,
+          lambda x: typing.cast(stream_types.RankingResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.RankingResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     
 
 class BamlHttpRequestClient:
@@ -121,11 +159,25 @@ class BamlHttpRequestClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def BrandSentiment(self, brand: str,passage: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="BrandSentiment", args={
+            "brand": brand,"passage": passage,
+        }, mode="request")
+        return result
     def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="ExtractResume", args={
             "resume": resume,
+        }, mode="request")
+        return result
+    def RankEntities(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntities", args={
+            "query": query,"k": k,
         }, mode="request")
         return result
     
@@ -136,11 +188,25 @@ class BamlHttpStreamRequestClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def BrandSentiment(self, brand: str,passage: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="BrandSentiment", args={
+            "brand": brand,"passage": passage,
+        }, mode="stream")
+        return result
     def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="ExtractResume", args={
             "resume": resume,
+        }, mode="stream")
+        return result
+    def RankEntities(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntities", args={
+            "query": query,"k": k,
         }, mode="stream")
         return result
     

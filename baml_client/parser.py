@@ -22,11 +22,23 @@ class LlmResponseParser:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def BrandSentiment(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.SentimentResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="BrandSentiment", llm_response=llm_response, mode="request")
+        return typing.cast(types.SentimentResult, result)
+
     def ExtractResume(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> types.Resume:
         result = self.__options.merge_options(baml_options).parse_response(function_name="ExtractResume", llm_response=llm_response, mode="request")
         return typing.cast(types.Resume, result)
+
+    def RankEntities(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.RankingResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntities", llm_response=llm_response, mode="request")
+        return typing.cast(types.RankingResult, result)
 
     
 
@@ -36,10 +48,22 @@ class LlmStreamParser:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def BrandSentiment(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.SentimentResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="BrandSentiment", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.SentimentResult, result)
+
     def ExtractResume(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> stream_types.Resume:
         result = self.__options.merge_options(baml_options).parse_response(function_name="ExtractResume", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.Resume, result)
+
+    def RankEntities(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.RankingResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntities", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.RankingResult, result)
 
     

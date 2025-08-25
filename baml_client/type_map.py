@@ -16,8 +16,19 @@ from . import stream_types
 
 type_map = {
 
+    "types.Answer": types.Answer,
+    "stream_types.Answer": stream_types.Answer,
+
+    "types.RankingResult": types.RankingResult,
+    "stream_types.RankingResult": stream_types.RankingResult,
+
     "types.Resume": types.Resume,
     "stream_types.Resume": stream_types.Resume,
 
+    "types.SentimentResult": types.SentimentResult,
+    "stream_types.SentimentResult": stream_types.SentimentResult,
+
+
+    "types.Sentiment": types.Sentiment,
 
 }
