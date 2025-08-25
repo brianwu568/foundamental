@@ -73,3 +73,19 @@ retry_policy Exponential {
     max_delay_ms 10000
   }
 }
+
+client<llm> OllamaLocal {
+  provider ollama
+  options {
+    model "llama3"
+    base_url "http://localhost:11434"
+  }
+}
+
+client<llm> OllamaLlama3_1 {
+  provider ollama
+  options {
+    model "llama3.1"
+    base_url "http://localhost:11434"
+  }
+}
