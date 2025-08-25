@@ -106,6 +106,20 @@ class BamlSyncClient:
             "query": query,"k": k,
         })
         return typing.cast(types.RankingResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    def RankEntitiesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RankingResult:
+        result = self.__options.merge_options(baml_options).call_function_sync(function_name="RankEntitiesOllama", args={
+            "query": query,"k": k,
+        })
+        return typing.cast(types.RankingResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    def RankEntitiesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RankingResult:
+        result = self.__options.merge_options(baml_options).call_function_sync(function_name="RankEntitiesOpenAI", args={
+            "query": query,"k": k,
+        })
+        return typing.cast(types.RankingResult, result.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -151,6 +165,30 @@ class BamlStreamClient:
           lambda x: typing.cast(types.RankingResult, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def RankEntitiesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="RankEntitiesOllama", args={
+            "query": query,"k": k,
+        })
+        return baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult](
+          result,
+          lambda x: typing.cast(stream_types.RankingResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.RankingResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def RankEntitiesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_sync_stream(function_name="RankEntitiesOpenAI", args={
+            "query": query,"k": k,
+        })
+        return baml_py.BamlSyncStream[stream_types.RankingResult, types.RankingResult](
+          result,
+          lambda x: typing.cast(stream_types.RankingResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.RankingResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     
 
 class BamlHttpRequestClient:
@@ -180,6 +218,20 @@ class BamlHttpRequestClient:
             "query": query,"k": k,
         }, mode="request")
         return result
+    def RankEntitiesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntitiesOllama", args={
+            "query": query,"k": k,
+        }, mode="request")
+        return result
+    def RankEntitiesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntitiesOpenAI", args={
+            "query": query,"k": k,
+        }, mode="request")
+        return result
     
 
 class BamlHttpStreamRequestClient:
@@ -206,6 +258,20 @@ class BamlHttpStreamRequestClient:
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntities", args={
+            "query": query,"k": k,
+        }, mode="stream")
+        return result
+    def RankEntitiesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntitiesOllama", args={
+            "query": query,"k": k,
+        }, mode="stream")
+        return result
+    def RankEntitiesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = self.__options.merge_options(baml_options).create_http_request_sync(function_name="RankEntitiesOpenAI", args={
             "query": query,"k": k,
         }, mode="stream")
         return result
