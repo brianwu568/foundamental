@@ -1,0 +1,18 @@
+    # Virtual environment
+    .venv/
+    .uv/
+
+    # Python bytecode
+    __pycache__/
+    *.pyc
+
+    # uv specific files
+    uv.lock
+
+    # Editor/IDE specific files
+    .vscode/
+    .idea/
+
+    # Logs and temporary files
+    *.log
+    *.tmp
