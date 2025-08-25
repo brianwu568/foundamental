@@ -1,7 +1,7 @@
 # Import Required Packages
 import os
 from .base import LLMProvider
-from baml_client import b
+from baml_client.async_client import b
 from dotenv import load_dotenv
 
 load_dotenv()
