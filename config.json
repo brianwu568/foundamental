@@ -1,0 +1,45 @@
+{
+  "brands": [
+    {
+      "id": 1,
+      "name": "YourBrand", 
+      "aliases": ["Your Brand", "YB", "YourBrand.com"]
+    },
+    {
+      "id": 2,
+      "name": "CompetitorX",
+      "aliases": ["Comp X", "CX", "Competitor X", "CompX"]
+    },
+    {
+      "id": 3,
+      "name": "OpenAI",
+      "aliases": ["Open AI", "ChatGPT", "GPT"]
+    }
+  ],
+  "queries": [
+    {
+      "id": 1,
+      "text": "Best vector database for RAG",
+      "k": 5,
+      "category": "technical"
+    },
+    {
+      "id": 2, 
+      "text": "Top enterprise chatbots for internal knowledge",
+      "k": 5,
+      "category": "enterprise"
+    },
+    {
+      "id": 3,
+      "text": "Leading AI companies for business automation",
+      "k": 7,
+      "category": "business"
+    },
+    {
+      "id": 4,
+      "text": "Best machine learning platforms for startups", 
+      "k": 5,
+      "category": "startup"
+    }
+  ]
+}
