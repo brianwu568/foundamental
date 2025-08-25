@@ -33,6 +33,36 @@ function RankEntities(query: string, k: int) -> RankingResult {
   "#
 }
 
+function RankEntitiesOpenAI(query: string, k: int) -> RankingResult {
+  client CustomGPT4oMini
+
+  prompt #"
+    You are a rankings engine. Given a user query, return the top-K entities
+    that best answer the query. Return STRICT JSON that conforms to the
+    output schema.
+
+    Query: {{ query }}
+    TopK: {{ k }}
+
+    {{ ctx.output_format }}
+  "#
+}
+
+function RankEntitiesOllama(query: string, k: int) -> RankingResult {
+  client OllamaLocal
+
+  prompt #"
+    You are a rankings engine. Given a user query, return the top-K entities
+    that best answer the query. Return STRICT JSON that conforms to the
+    output schema.
+
+    Query: {{ query }}
+    TopK: {{ k }}
+
+    {{ ctx.output_format }}
+  "#
+}
+
 function BrandSentiment(brand: string, passage: string) -> SentimentResult {
   client "openai/gpt-4o-mini"
 
