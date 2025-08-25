@@ -71,28 +71,28 @@ Define the queries you want to test:
 
 ### Run Analysis
 ```bash
-python llmseo.py run
+python foundamental.py run
 ```
 
 ### View Results
 ```bash
-python llmseo.py analyze --report
+python foundamental.py analyze --report
 ```
 
 ### Compare Providers
 ```bash
-python llmseo.py analyze --compare
+python foundamental.py analyze --compare
 ```
 
 ### Analyze Brand Sentiment
 ```bash
-python llmseo.py sentiment --analyze
-python llmseo.py sentiment --report
+python foundamental.py sentiment --analyze
+python foundamental.py sentiment --report
 ```
 
 ### Export Results
 ```bash
-python llmseo.py analyze --export results.json
+python foundamental.py analyze --export results.json
 ```
 
 ## Output
