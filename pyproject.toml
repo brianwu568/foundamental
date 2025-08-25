@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.15",
     "baml-py>=0.205.0",
+    "python-dotenv>=1.1.1",
 ]
