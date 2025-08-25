@@ -1,18 +1,14 @@
-"""
-Foundamental CLI - Brand Visibility Tracker
-Command line interface for running LLM brand visibility analysis
-"""
 # Import Required Packages
 import argparse
 import asyncio
 import sys
-import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from run import main as run_analysis
 from analyze import main as analyze_results
+from sentiment_analyzer import main as sentiment_analysis
 
 
 def main():
@@ -21,10 +17,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s run                    # Run brand analysis
-  %(prog)s analyze --report       # View brand report  
-  %(prog)s analyze --compare      # Compare providers
+  %(prog)s run                        # Run brand analysis
+  %(prog)s analyze --report           # View brand report  
+  %(prog)s analyze --compare          # Compare providers
   %(prog)s analyze --export out.json  # Export to JSON
+  %(prog)s sentiment --analyze        # Analyze brand sentiment
         """)
     
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -38,6 +35,11 @@ Examples:
     analyze_parser.add_argument('--report', action='store_true', help='Show brand report')
     analyze_parser.add_argument('--compare', action='store_true', help='Show provider comparison')
     
+    sentiment_parser = subparsers.add_parser('sentiment', help='Analyze brand sentiment')
+    sentiment_parser.add_argument('--db', default='llmseo.db', help='Database file path')
+    sentiment_parser.add_argument('--analyze', action='store_true', help='Run sentiment analysis')
+    sentiment_parser.add_argument('--report', action='store_true', help='Show sentiment report')
+    
     args = parser.parse_args()
     
     if args.command == 'run':
@@ -45,7 +47,7 @@ Examples:
         try:
             asyncio.run(run_analysis())
         except KeyboardInterrupt:
-            print("\n Analysis interrupted by user")
+            print("\Analysis interrupted by user")
         except Exception as e:
             print(f"Error during analysis: {e}")
     
@@ -60,11 +62,27 @@ Examples:
             analyze_args.append('--report')
         if args.compare:
             analyze_args.append('--compare')
-        
+    
         original_argv = sys.argv
         sys.argv = analyze_args
         try:
             analyze_results()
+        finally:
+            sys.argv = original_argv
+    
+    elif args.command == 'sentiment':
+        sentiment_args = ['sentiment_analyzer.py']
+        if args.db != 'llmseo.db':
+            sentiment_args.extend(['--db', args.db])
+        if args.analyze:
+            sentiment_args.append('--analyze')
+        if args.report:
+            sentiment_args.append('--report')
+        
+        original_argv = sys.argv
+        sys.argv = sentiment_args
+        try:
+            asyncio.run(sentiment_analysis())
         finally:
             sys.argv = original_argv
     
