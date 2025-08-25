@@ -1,15 +1,10 @@
 # Import Required Packages
 import os
-import json
-import asyncio
-import aiohttp
 from .base import LLMProvider
+from baml_client import b
 from dotenv import load_dotenv
 
 load_dotenv()
-if "OPENAI_API_KEY" not in os.environ:
-    raise ValueError("OPENAI_API_KEY not found in environment variables.")
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 
 class OpenAIProvider(LLMProvider):
@@ -17,24 +12,22 @@ class OpenAIProvider(LLMProvider):
 
     def __init__(self, model="gpt-4o-mini"):
         self.model = model
-        self.api_key = OPENAI_API_KEY
+        
+        # Ensure API key is available
+        if "OPENAI_API_KEY" not in os.environ:
+            raise ValueError("OPENAI_API_KEY not found in environment variables.")
 
     async def rank(self, query: str, k: int, **kw):
-        prompt = {
-            "role":"user",
-            "content": f'Query: "{query}"\nTopK: {k}\nReturn strict JSON: {{ "answers": [{{"name": "...","why": "..."}}] }}'
+        # Use BAML's OpenAI-specific ranking function
+        result = await b.RankEntitiesOpenAI(query=query, k=k)
+        
+        # Convert BAML RankingResult to the expected format
+        return {
+            "answers": [
+                {
+                    "name": answer.name,
+                    "why": answer.why
+                }
+                for answer in result.answers
+            ]
         }
-        body = {
-            "model": self.model,
-            "messages": [{"role":"system","content":"You are a rankings engine."}, prompt],
-            "temperature": 0.2
-        }
-        async with aiohttp.ClientSession() as s:
-            async with s.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json=body
-            ) as r:
-                data = await r.json()
-        text = data["choices"][0]["message"]["content"]
-        return json.loads(text)

@@ -1,7 +1,6 @@
 # Import Required Packages
-import json
-import aiohttp
 from .base import LLMProvider
+from baml_client import b
 
 class OllamaProvider(LLMProvider):
     name = "ollama"
@@ -10,12 +9,16 @@ class OllamaProvider(LLMProvider):
         self.model = model
 
     async def rank(self, query: str, k: int, **kw):
-        prompt = f"""You are a rankings engine...
-Query: "{query}"
-TopK: {k}
-Return strict JSON: {{ "answers": [{{"name":"...","why":"..."}}] }}"""
-        async with aiohttp.ClientSession() as s:
-            async with s.post("http://localhost:11434/api/chat",
-                              json={"model": self.model, "messages":[{"role":"user","content": prompt}]}) as r:
-                data = await r.json()
-        return json.loads(data["message"]["content"])
+        # Use BAML's Ollama-specific ranking function
+        result = await b.RankEntitiesOllama(query=query, k=k)
+        
+        # Convert BAML RankingResult to the expected format
+        return {
+            "answers": [
+                {
+                    "name": answer.name,
+                    "why": answer.why
+                }
+                for answer in result.answers
+            ]
+        }
