@@ -125,7 +125,7 @@ openai          gpt-4o-mini     2          2.5        100.0%
 ollama          llama3          1          4.0        100.0%
 ```
 
-## Extending the Application
+## Adding Other Model Providers/Methods of Analysis
 
 ### Add New Providers
 1. Create a new provider class in `src/providers/`
@@ -145,7 +145,7 @@ GROUP BY brand_name;
 
 - Python 3.7+
 - OpenAI API key (for OpenAI provider)
-- Ollama running locally (for Ollama provider)
+- Ollama running locally (for Ollama provider) on port `11434`
 
 ## Database Schema
 
