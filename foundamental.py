@@ -1,14 +1,12 @@
 # Import Required Packages
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 from sentiment_analyzer import main as sentiment_analysis
 from analyze import main as analyze_results
 from run import main as run_analysis
 import argparse
 import asyncio
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
 
 def main():
     parser = argparse.ArgumentParser(
