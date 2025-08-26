@@ -47,7 +47,7 @@ Examples:
         try:
             asyncio.run(run_analysis())
         except KeyboardInterrupt:
-            print("\n Analysis interrupted by user")
+            print("\nAnalysis interrupted by user")
         except Exception as e:
             print(f"Error during analysis: {e}")
     
