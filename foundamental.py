@@ -47,12 +47,11 @@ Examples:
         try:
             asyncio.run(run_analysis())
         except KeyboardInterrupt:
-            print("\Analysis interrupted by user")
+            print("\n Analysis interrupted by user")
         except Exception as e:
             print(f"Error during analysis: {e}")
     
     elif args.command == 'analyze':
-        import sys
         analyze_args = ['analyze.py']
         if args.db != 'llmseo.db':
             analyze_args.extend(['--db', args.db])

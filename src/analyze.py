@@ -109,7 +109,7 @@ def get_provider_comparison(db_path="llmseo.db"):
             COUNT(DISTINCT m.id) as total_mentions,
             AVG(m.rank_position) as avg_rank,
             COUNT(DISTINCT r.id) as total_responses,
-            COUNT(CASE WHEN r.error_message IS NULL THEN 1 END) as successful_responses
+            COUNT(DISTINCT CASE WHEN r.error_message IS NULL THEN r.id END) as successful_responses
         FROM responses r
         LEFT JOIN mentions m ON r.id = m.response_id
         GROUP BY r.provider_name, r.model_name

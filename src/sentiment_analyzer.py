@@ -36,7 +36,7 @@ async def analyze_brand_sentiment(db_path="llmseo.db"):
     results = []
     for mention_id, brand_name, explanation, alias_used in mentions:
         try:
-            sentiment_result = await b.BrandSentiment(
+            sentiment_result = b.BrandSentiment(
                 brand=brand_name,
                 passage=explanation
             )

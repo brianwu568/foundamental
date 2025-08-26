@@ -24,4 +24,3 @@ class LLMProvider(ABC):
             (format: {"answers": [{"name": str, "why": str}, ...]})
         """
         pass
-    
