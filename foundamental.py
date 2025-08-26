@@ -52,7 +52,6 @@ Examples:
             print(f"Error during analysis: {e}")
     
     elif args.command == 'analyze':
-        import sys
         analyze_args = ['analyze.py']
         if args.db != 'llmseo.db':
             analyze_args.extend(['--db', args.db])
