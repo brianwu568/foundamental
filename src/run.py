@@ -6,8 +6,8 @@ import json
 import sqlite3
 import os
 from pathlib import Path
-from .providers.openai_provider import OpenAIProvider
-from .providers.ollama_provider import OllamaProvider
+from providers.openai_provider import OpenAIProvider
+from providers.ollama_provider import OllamaProvider
 
 def load_config(config_path="config.json"):
     """Load configuration from JSON file"""
