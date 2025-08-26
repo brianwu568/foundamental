@@ -156,7 +156,7 @@ async def main():
     conn.close()
     
     duration = run_completed - run_started
-    print(f"\n🎯 Analysis Complete!")
+    print(f"\n Analysis Complete!")
     print(f"   Duration: {duration:.2f} seconds")
     print(f"   Success: {success_count}/{total_operations}")
     print(f"   Errors: {error_count}/{total_operations}")
