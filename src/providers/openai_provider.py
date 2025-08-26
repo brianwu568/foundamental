@@ -12,15 +12,16 @@ class OpenAIProvider(LLMProvider):
 
     def __init__(self, model="gpt-4o-mini"):
         self.model = model
-        
+
         # Ensure API key is available
         if "OPENAI_API_KEY" not in os.environ:
-            raise ValueError("OPENAI_API_KEY not found in environment variables.")
+            raise ValueError(
+                "OPENAI_API_KEY not found in environment variables.")
 
     async def rank(self, query: str, k: int, **kw):
         # Use BAML's OpenAI-specific ranking function
         result = await b.RankEntitiesOpenAI(query=query, k=k)
-        
+
         # Convert BAML RankingResult to the expected format
         return {
             "answers": [

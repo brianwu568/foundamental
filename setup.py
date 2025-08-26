@@ -14,7 +14,8 @@ def check_python_version():
     if sys.version_info < (3, 7):
         print("Python 3.7+ required")
         return False
-    print(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    print(
+        f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
     return True
 
 
@@ -22,8 +23,8 @@ def install_dependencies():
     """Install required dependencies"""
     print("📦 Installing dependencies...")
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], 
-                      check=True, capture_output=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+                       check=True, capture_output=True)
         print("Dependencies installed successfully")
         return True
     except subprocess.CalledProcessError as e:
@@ -37,13 +38,13 @@ def setup_env_file():
     if os.path.exists(".env"):
         print(".env file already exists")
         return True
-    
+
     if os.path.exists(".env.example"):
         print("Creating .env from .env.example...")
         with open(".env.example", "r") as src, open(".env", "w") as dst:
             content = src.read()
             dst.write(content)
-        
+
         print("Please edit .env file and add your API keys:")
         print("   - OPENAI_API_KEY (required for OpenAI provider)")
         return True
@@ -53,7 +54,7 @@ def setup_env_file():
             f.write("# Add your API keys here\n")
             f.write("OPENAI_API_KEY=your_openai_api_key_here\n")
             f.write("# ANTHROPIC_API_KEY=your_anthropic_key_here\n")
-        
+
         print("Please edit .env file and add your API keys")
         return True
 
@@ -72,20 +73,20 @@ def check_baml_client():
 def main():
     print("LLM SEO Environment Setup")
     print("=" * 40)
-    
+
     checks = [
         ("Python Version", check_python_version),
         ("Dependencies", install_dependencies),
         ("Environment File", setup_env_file),
         ("BAML Client", check_baml_client),
     ]
-    
+
     all_passed = True
     for check_name, check_func in checks:
         print(f"\n {check_name}...")
         if not check_func():
             all_passed = False
-    
+
     print(f"\n{'='*40}")
     if all_passed:
         print("Environment setup complete!")
@@ -95,7 +96,7 @@ def main():
         print("  3. python foundamental.py run  # Start analysis")
     else:
         print("Some setup steps failed. Please address the issues above.")
-    
+
     return all_passed
 
 
