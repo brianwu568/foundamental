@@ -155,7 +155,7 @@ GROUP BY brand_name;
 
 ## License
 
-TODO
+This project is available for usage under the [MIT License](https://opensource.org/license/mit).
 
 ## BAML Integration
 
