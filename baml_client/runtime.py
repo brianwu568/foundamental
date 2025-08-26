@@ -25,7 +25,8 @@ class BamlCallOptions(typing.TypedDict, total=False):
     client_registry: typing_extensions.NotRequired[baml_py.baml_py.ClientRegistry]
     env: typing_extensions.NotRequired[typing.Dict[str, typing.Optional[str]]]
     collector: typing_extensions.NotRequired[
-        typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]
+        typing.Union[baml_py.baml_py.Collector,
+                     typing.List[baml_py.baml_py.Collector]]
     ]
 
 
@@ -48,9 +49,6 @@ class _ResolvedBamlOptions:
         self.env_vars = env_vars
 
 
-
-
-
 class DoNotUseDirectlyCallManager:
     def __init__(self, baml_options: BamlCallOptions):
         self.__baml_options = baml_options
@@ -66,7 +64,8 @@ class DoNotUseDirectlyCallManager:
     def __resolve(self) -> _ResolvedBamlOptions:
         tb = self.__baml_options.get("tb")
         if tb is not None:
-            baml_tb = tb._tb  # type: ignore (we know how to use this private attribute)
+            # type: ignore (we know how to use this private attribute)
+            baml_tb = tb._tb
         else:
             baml_tb = None
         client_registry = self.__baml_options.get("client_registry")
@@ -272,7 +271,8 @@ def disassemble(function: typing.Callable) -> None:
             break
 
     if not is_client_method:
-        print(f"disassemble: function {function.__name__} is not a Baml function")
+        print(
+            f"disassemble: function {function.__name__} is not a Baml function")
         return
 
     print(f"----- function {function.__name__} -----")
