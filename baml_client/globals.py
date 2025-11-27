@@ -19,13 +19,11 @@ from .inlinedbaml import get_baml_files
 from typing import Dict
 
 DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME = BamlRuntime.from_files(
-    "baml_src",
-    get_baml_files(),
-    os.environ.copy()
+  "baml_src",
+  get_baml_files(),
+  os.environ.copy()
 )
-DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX = BamlCtxManager(
-    DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME)
-
+DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_CTX = BamlCtxManager(DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME)
 
 def reset_baml_env_vars(env_vars: Dict[str, str]):
     warnings.warn(
@@ -33,6 +31,5 @@ def reset_baml_env_vars(env_vars: Dict[str, str]):
         DeprecationWarning,
         stacklevel=2
     )
-
 
 __all__ = []

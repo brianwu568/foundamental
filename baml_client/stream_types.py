@@ -19,8 +19,6 @@ import baml_py
 from . import types
 
 StreamStateValueT = typing.TypeVar('StreamStateValueT')
-
-
 class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
@@ -28,22 +26,18 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
 # Generated classes (4)
 # #########################################################################
 
-
 class Answer(BaseModel):
     name: typing.Optional[str] = None
     why: typing.Optional[str] = None
 
-
 class RankingResult(BaseModel):
     answers: typing.List["Answer"]
-
 
 class Resume(BaseModel):
     name: typing.Optional[str] = None
     email: typing.Optional[str] = None
     experience: typing.List[str]
     skills: typing.List[str]
-
 
 class SentimentResult(BaseModel):
     sentiment: typing.Optional[types.Sentiment] = None
