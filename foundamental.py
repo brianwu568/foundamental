@@ -5,6 +5,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from sentiment_analyzer import main as sentiment_analysis
 from analyze import main as analyze_results
 from run import main as run_analysis
+from run_with_sources import main as run_analysis_with_sources
+from hallucination_filter import main as hallucination_analysis
 import argparse
 import asyncio
 
@@ -15,10 +17,13 @@ def main():
         epilog="""
 Examples:
   %(prog)s run                        # Run brand analysis
+  %(prog)s run --with-sources         # Run with hallucination filter
   %(prog)s analyze --report           # View brand report  
   %(prog)s analyze --compare          # Compare providers
   %(prog)s analyze --export out.json  # Export to JSON
   %(prog)s sentiment --analyze        # Analyze brand sentiment
+  %(prog)s hallucination --analyze    # Analyze hallucination risks
+  %(prog)s hallucination --report     # View hallucination report
         """)
 
     subparsers = parser.add_subparsers(
@@ -28,6 +33,9 @@ Examples:
         'run', help='Run brand visibility analysis')
     run_parser.add_argument(
         '--config', default='config.json', help='Config file path')
+    run_parser.add_argument(
+        '--with-sources', action='store_true', 
+        help='Enable hallucination filter (request sources and confidence)')
 
     analyze_parser = subparsers.add_parser('analyze', help='Analyze results')
     analyze_parser.add_argument(
@@ -46,13 +54,29 @@ Examples:
         '--analyze', action='store_true', help='Run sentiment analysis')
     sentiment_parser.add_argument(
         '--report', action='store_true', help='Show sentiment report')
+    
+    hallucination_parser = subparsers.add_parser(
+        'hallucination', help='Hallucination filter analysis')
+    hallucination_parser.add_argument(
+        '--db', default='llmseo.db', help='Database file path')
+    hallucination_parser.add_argument(
+        '--analyze', action='store_true', help='Run hallucination analysis')
+    hallucination_parser.add_argument(
+        '--report', action='store_true', help='Show hallucination report')
+    hallucination_parser.add_argument(
+        '--verify-urls', action='store_true', 
+        help='Verify URL accessibility (slower)')
 
     args = parser.parse_args()
 
     if args.command == 'run':
-        print("Starting LLM SEO brand analysis...")
+        mode_str = "with hallucination filter" if args.with_sources else ""
+        print(f"Starting LLM SEO brand analysis {mode_str}...")
         try:
-            asyncio.run(run_analysis())
+            if args.with_sources:
+                asyncio.run(run_analysis_with_sources(with_sources=True))
+            else:
+                asyncio.run(run_analysis())
         except KeyboardInterrupt:
             print("\n Analysis interrupted by user")
         except Exception as e:
@@ -89,6 +113,24 @@ Examples:
         sys.argv = sentiment_args
         try:
             asyncio.run(sentiment_analysis())
+        finally:
+            sys.argv = original_argv
+    
+    elif args.command == 'hallucination':
+        hallucination_args = ['hallucination_filter.py']
+        if args.db != 'llmseo.db':
+            hallucination_args.extend(['--db', args.db])
+        if args.analyze:
+            hallucination_args.append('--analyze')
+        if args.report:
+            hallucination_args.append('--report')
+        if args.verify_urls:
+            hallucination_args.append('--verify-urls')
+
+        original_argv = sys.argv
+        sys.argv = hallucination_args
+        try:
+            asyncio.run(hallucination_analysis())
         finally:
             sys.argv = original_argv
 
