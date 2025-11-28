@@ -11,6 +11,7 @@ A Python application that helps brands understand their visibility and ranking a
 - **Brand Tracking**: Monitor mentions of your brand and competitors
 - **Ranking Analysis**: See where brands rank in LLM responses
 - **Sentiment Analysis**: Analyze sentiment of brand mentions
+- **Hallucination Filter**: Request sources/citations and score confidence to detect hallucinations
 - **SQLite Storage**: Persistent storage of all results
 - **Comprehensive Analytics**: Detailed reports and comparisons
 - **Configurable**: Easy configuration via JSON files
@@ -71,7 +72,11 @@ Define the queries you want to test:
 
 ### Run Analysis
 ```bash
+# Standard analysis
 python foundamental.py run
+
+# With hallucination filter (requests sources and confidence)
+python foundamental.py run --with-sources
 ```
 
 ### View Results
@@ -89,6 +94,17 @@ python foundamental.py analyze --compare
 python foundamental.py sentiment --analyze
 python foundamental.py sentiment --report
 ```
+
+### Hallucination Filter
+```bash
+# Analyze hallucination risks
+python foundamental.py hallucination --analyze --verify-urls
+
+# View hallucination report
+python foundamental.py hallucination --report
+```
+
+See [HALLUCINATION_FILTER.md](HALLUCINATION_FILTER.md) for detailed documentation.
 
 ### Export Results
 ```bash
@@ -171,8 +187,8 @@ baml-cli generate
 ```
 
 ## Roadmap
+- [x] Hallucination Filter: Ask models to output URLs/sources and score confidence
 - [ ] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
-- [ ] Hallucination Filter: Ask models to output URLs/sources and score confidence
 - [ ] Competitor graph (co-mention network over time)
 - [ ] Attribution tests
 - [ ] Simple UI
