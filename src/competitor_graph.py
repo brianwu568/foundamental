@@ -377,6 +377,209 @@ class CompetitorGraphAnalyzer:
             })
         
         return competitors
+    
+    def to_networkx(self, min_strength: float = 0.0, include_attributes: bool = True):
+        """
+        Convert competitor graph to NetworkX format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            include_attributes: Whether to include edge attributes (weight, co_mentions, etc.)
+            
+        Returns:
+            NetworkX Graph object
+            
+        Raises:
+            ImportError: If networkx is not installed
+        """
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError(
+                "NetworkX is required for this feature. Install with: pip install networkx"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create undirected graph
+        G = nx.Graph()
+        
+        # Add nodes with attributes
+        for node in graph_data['nodes']:
+            G.add_node(node['id'], label=node['label'])
+        
+        # Add edges with attributes
+        for edge in graph_data['edges']:
+            if include_attributes:
+                G.add_edge(
+                    edge['source'],
+                    edge['target'],
+                    weight=edge['weight'],
+                    co_mentions=edge['co_mentions'],
+                    avg_distance=edge['avg_distance'],
+                    first_seen=edge['first_seen'],
+                    last_seen=edge['last_seen']
+                )
+            else:
+                G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
+        
+        return G
+    
+    def to_pyg(self, min_strength: float = 0.0, include_node_features: bool = False):
+        """
+        Convert competitor graph to PyTorch Geometric (PyG) format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            include_node_features: Whether to include node feature matrix
+            
+        Returns:
+            torch_geometric.data.Data object with:
+                - edge_index: Graph connectivity in COO format [2, num_edges]
+                - edge_attr: Edge attributes (weight, co_mentions, avg_distance) [num_edges, 3]
+                - node_names: List of node names (for reference)
+                - x: Node feature matrix (optional) [num_nodes, num_features]
+            
+        Raises:
+            ImportError: If torch or torch_geometric is not installed
+        """
+        try:
+            import torch
+            from torch_geometric.data import Data
+        except ImportError:
+            raise ImportError(
+                "PyTorch Geometric is required for this feature. "
+                "Install with: pip install torch torch-geometric"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create node to index mapping
+        nodes = graph_data['nodes']
+        node_names = [node['id'] for node in nodes]
+        node_to_idx = {name: idx for idx, name in enumerate(node_names)}
+        
+        # Build edge index and edge attributes
+        edge_index = []
+        edge_attr = []
+        
+        for edge in graph_data['edges']:
+            src_idx = node_to_idx[edge['source']]
+            dst_idx = node_to_idx[edge['target']]
+            
+            # Add both directions for undirected graph
+            edge_index.append([src_idx, dst_idx])
+            edge_index.append([dst_idx, src_idx])
+            
+            # Edge attributes: [weight, co_mentions, avg_distance]
+            attrs = [
+                edge['weight'],
+                float(edge['co_mentions']),
+                edge['avg_distance']
+            ]
+            edge_attr.append(attrs)
+            edge_attr.append(attrs)  # Same attributes for reverse edge
+        
+        # Convert to tensors
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+        edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+        
+        # Create PyG Data object
+        data = Data(
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=len(node_names)
+        )
+        
+        # Store node names as attribute (not tensor)
+        data.node_names = node_names
+        
+        # Optionally add node features
+        if include_node_features:
+            # Calculate node features based on graph statistics
+            c = self.conn.cursor()
+            node_features = []
+            
+            for node_name in node_names:
+                # Get statistics for this node
+                c.execute('''
+                    SELECT 
+                        COUNT(*) as total_relationships,
+                        AVG(strength_score) as avg_strength,
+                        AVG(co_mention_count) as avg_co_mentions,
+                        AVG(avg_rank_distance) as avg_rank_dist
+                    FROM competitor_relationships
+                    WHERE brand_name_1 = ? OR brand_name_2 = ?
+                ''', (node_name, node_name))
+                
+                stats = c.fetchone()
+                total_rel, avg_str, avg_co, avg_rank = stats
+                
+                # Feature vector: [degree, avg_strength, avg_co_mentions, avg_rank_distance]
+                features = [
+                    float(total_rel or 0),
+                    float(avg_str or 0),
+                    float(avg_co or 0),
+                    float(avg_rank or 0)
+                ]
+                node_features.append(features)
+            
+            data.x = torch.tensor(node_features, dtype=torch.float)
+        
+        return data
+    
+    def to_adjacency_matrix(self, min_strength: float = 0.0, weighted: bool = True):
+        """
+        Convert competitor graph to adjacency matrix format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            weighted: If True, use strength scores as weights; if False, binary (0/1)
+            
+        Returns:
+            Tuple of (adjacency_matrix, node_names) where:
+                - adjacency_matrix: 2D numpy array [num_nodes, num_nodes]
+                - node_names: List of node names corresponding to matrix indices
+            
+        Raises:
+            ImportError: If numpy is not installed
+        """
+        try:
+            import numpy as np
+        except ImportError:
+            raise ImportError(
+                "NumPy is required for this feature. Install with: pip install numpy"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create node to index mapping
+        nodes = graph_data['nodes']
+        node_names = [node['id'] for node in nodes]
+        node_to_idx = {name: idx for idx, name in enumerate(node_names)}
+        num_nodes = len(node_names)
+        
+        # Initialize adjacency matrix
+        adj_matrix = np.zeros((num_nodes, num_nodes), dtype=np.float32)
+        
+        # Fill adjacency matrix
+        for edge in graph_data['edges']:
+            src_idx = node_to_idx[edge['source']]
+            dst_idx = node_to_idx[edge['target']]
+            
+            if weighted:
+                weight = edge['weight']
+            else:
+                weight = 1.0
+            
+            # Symmetric (undirected graph)
+            adj_matrix[src_idx, dst_idx] = weight
+            adj_matrix[dst_idx, src_idx] = weight
+        
+        return adj_matrix, node_names
 
 
 def print_competitor_graph_report(db_path: str = "llmseo.db", 
