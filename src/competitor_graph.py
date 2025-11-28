@@ -7,10 +7,35 @@ building a temporal graph of competitive relationships.
 
 import sqlite3
 import json
+import csv
 from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Any, Optional
 from datetime import datetime, timedelta
 import argparse
+
+# Optional dependencies for graph export formats
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    np = None
+    HAS_NUMPY = False
+
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    nx = None
+    HAS_NETWORKX = False
+
+try:
+    import torch
+    from torch_geometric.data import Data as PyGData
+    HAS_TORCH_GEOMETRIC = True
+except ImportError:
+    torch = None
+    PyGData = None
+    HAS_TORCH_GEOMETRIC = False
 
 
 class CompetitorGraphAnalyzer:
@@ -392,9 +417,7 @@ class CompetitorGraphAnalyzer:
         Raises:
             ImportError: If networkx is not installed
         """
-        try:
-            import networkx as nx
-        except ImportError:
+        if not HAS_NETWORKX:
             raise ImportError(
                 "NetworkX is required for this feature. Install with: pip install networkx"
             )
@@ -444,10 +467,7 @@ class CompetitorGraphAnalyzer:
         Raises:
             ImportError: If torch or torch_geometric is not installed
         """
-        try:
-            import torch
-            from torch_geometric.data import Data
-        except ImportError:
+        if not HAS_TORCH_GEOMETRIC:
             raise ImportError(
                 "PyTorch Geometric is required for this feature. "
                 "Install with: pip install torch torch-geometric"
@@ -487,7 +507,7 @@ class CompetitorGraphAnalyzer:
         edge_attr = torch.tensor(edge_attr, dtype=torch.float)
         
         # Create PyG Data object
-        data = Data(
+        data = PyGData(
             edge_index=edge_index,
             edge_attr=edge_attr,
             num_nodes=len(node_names)
@@ -689,6 +709,146 @@ def export_competitor_graph(db_path: str = "llmseo.db",
         print(f"  Time Windows: {len(evolution)}")
 
 
+def export_networkx(db_path: str = "llmseo.db",
+                   output_file: str = "competitor_graph.gpickle",
+                   min_strength: float = 0.0):
+    """
+    Export competitor graph to NetworkX format
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.gpickle or .gml)
+        min_strength: Minimum relationship strength to include
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            G = analyzer.to_networkx(min_strength=min_strength)
+            
+            # Determine format from extension
+            if output_file.endswith('.gml'):
+                import networkx as nx
+                nx.write_gml(G, output_file)
+            else:
+                # Default to pickle format
+                import networkx as nx
+                nx.write_gpickle(G, output_file)
+            
+            print(f"✓ NetworkX graph exported to {output_file}")
+            print(f"  Nodes: {G.number_of_nodes()}")
+            print(f"  Edges: {G.number_of_edges()}")
+            print(f"\nUsage example:")
+            print(f"  import networkx as nx")
+            print(f"  G = nx.read_gpickle('{output_file}')")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install NetworkX with: pip install networkx")
+
+
+def export_pyg(db_path: str = "llmseo.db",
+              output_file: str = "competitor_graph.pt",
+              min_strength: float = 0.0,
+              include_node_features: bool = True):
+    """
+    Export competitor graph to PyTorch Geometric format
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.pt)
+        min_strength: Minimum relationship strength to include
+        include_node_features: Whether to include node feature matrix
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            import torch
+            data = analyzer.to_pyg(min_strength=min_strength, 
+                                  include_node_features=include_node_features)
+            
+            torch.save(data, output_file)
+            
+            print(f"✓ PyTorch Geometric graph exported to {output_file}")
+            print(f"  Nodes: {data.num_nodes}")
+            print(f"  Edges: {data.edge_index.shape[1]}")
+            if include_node_features:
+                print(f"  Node features: {data.x.shape}")
+            print(f"  Edge attributes: {data.edge_attr.shape}")
+            print(f"\nUsage example:")
+            print(f"  import torch")
+            print(f"  from torch_geometric.data import Data")
+            print(f"  data = torch.load('{output_file}')")
+            print(f"  print(data.node_names)  # List of brand names")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install PyTorch Geometric with:")
+            print("  pip install torch torch-geometric")
+
+
+def export_adjacency_matrix(db_path: str = "llmseo.db",
+                            output_file: str = "adjacency_matrix.npy",
+                            min_strength: float = 0.0,
+                            weighted: bool = True):
+    """
+    Export competitor graph as adjacency matrix
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.npy or .csv)
+        min_strength: Minimum relationship strength to include
+        weighted: If True, use strength scores; if False, binary
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            import numpy as np
+            adj_matrix, node_names = analyzer.to_adjacency_matrix(
+                min_strength=min_strength, 
+                weighted=weighted
+            )
+            
+            if output_file.endswith('.csv'):
+                # Export as CSV with headers
+                import csv
+                with open(output_file, 'w', newline='') as f:
+                    writer = csv.writer(f)
+                    # Write header
+                    writer.writerow([''] + node_names)
+                    # Write rows
+                    for i, row in enumerate(adj_matrix):
+                        writer.writerow([node_names[i]] + row.tolist())
+            else:
+                # Save as numpy array
+                np.save(output_file, adj_matrix)
+                # Also save node names
+                node_names_file = output_file.replace('.npy', '_nodes.txt')
+                with open(node_names_file, 'w') as f:
+                    f.write('\n'.join(node_names))
+                print(f"  Node names saved to {node_names_file}")
+            
+            print(f"✓ Adjacency matrix exported to {output_file}")
+            print(f"  Shape: {adj_matrix.shape}")
+            print(f"  Type: {'Weighted' if weighted else 'Binary'}")
+            print(f"\nUsage example:")
+            if output_file.endswith('.csv'):
+                print(f"  import pandas as pd")
+                print(f"  df = pd.read_csv('{output_file}', index_col=0)")
+            else:
+                print(f"  import numpy as np")
+                print(f"  matrix = np.load('{output_file}')")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install NumPy with: pip install numpy")
+
+
 def main():
     """Main CLI for competitor graph analysis"""
     parser = argparse.ArgumentParser(
@@ -700,13 +860,31 @@ def main():
                        help='Focus analysis on specific brand')
     parser.add_argument('--export', type=str, 
                        help='Export graph to JSON file')
+    parser.add_argument('--export-networkx', type=str,
+                       help='Export to NetworkX format (.gpickle or .gml)')
+    parser.add_argument('--export-pyg', type=str,
+                       help='Export to PyTorch Geometric format (.pt)')
+    parser.add_argument('--export-adjacency', type=str,
+                       help='Export as adjacency matrix (.npy or .csv)')
     parser.add_argument('--min-strength', type=float, default=0.0,
                        help='Minimum relationship strength (0.0-1.0)')
+    parser.add_argument('--no-node-features', action='store_true',
+                       help='Exclude node features (PyG export only)')
+    parser.add_argument('--binary', action='store_true',
+                       help='Use binary adjacency matrix (adjacency export only)')
     
     args = parser.parse_args()
     
     if args.export:
         export_competitor_graph(args.db, args.export, args.min_strength)
+    elif args.export_networkx:
+        export_networkx(args.db, args.export_networkx, args.min_strength)
+    elif args.export_pyg:
+        export_pyg(args.db, args.export_pyg, args.min_strength, 
+                  include_node_features=not args.no_node_features)
+    elif args.export_adjacency:
+        export_adjacency_matrix(args.db, args.export_adjacency, 
+                               args.min_strength, weighted=not args.binary)
     elif args.report or args.brand:
         print_competitor_graph_report(args.db, args.brand)
     else:
