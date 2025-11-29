@@ -22,3 +22,6 @@ uv.lock
 
 # Databases
 *.db
+
+# BAML Client
+baml_client/
