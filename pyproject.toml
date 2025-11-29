@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.15",
     "autopep8>=2.3.2",
-    "baml-py>=0.205.0",
+    "baml-py==0.213.0",
     "flake8>=7.3.0",
     "matplotlib>=3.10.7",
     "networkx>=3.6",
