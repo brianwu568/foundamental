@@ -1,4 +1,4 @@
-# Foundamental - Brand Visibility Tracker
+# Foundamental - Brand Visibility Tracker in LLMs
 
 A Python application that helps brands understand their visibility and ranking across different Large Language Models (LLMs). Track how your brand appears in LLM responses compared to competitors.
 
@@ -11,6 +11,7 @@ A Python application that helps brands understand their visibility and ranking a
 - **Brand Tracking**: Monitor mentions of your brand and competitors
 - **Ranking Analysis**: See where brands rank in LLM responses
 - **Sentiment Analysis**: Analyze sentiment of brand mentions
+- **Competitor Graph**: Track co-mention networks and competitive relationships over time
 - **Hallucination Filter**: Request sources/citations and score confidence to detect hallucinations
 - **SQLite Storage**: Persistent storage of all results
 - **Comprehensive Analytics**: Detailed reports and comparisons
@@ -104,7 +105,36 @@ python foundamental.py hallucination --analyze --verify-urls
 python foundamental.py hallucination --report
 ```
 
-See [HALLUCINATION_FILTER.md](HALLUCINATION_FILTER.md) for detailed documentation.
+### Competitor Graph Analysis
+```bash
+# View competitor co-mention network
+python foundamental.py analyze --graph
+
+# Focus on specific brand's competitors
+python foundamental.py analyze --graph --brand YourBrand
+
+# Export graph to JSON for visualization
+python foundamental.py analyze --export-graph competitor_graph.json
+
+# Export to NetworkX (graph analysis)
+python src/competitor_graph.py --export-networkx graph.gpickle
+
+# Export to PyTorch Geometric (graph neural networks)
+python src/competitor_graph.py --export-pyg graph.pt
+
+# Export as adjacency matrix (NumPy/Pandas)
+python src/competitor_graph.py --export-adjacency matrix.csv
+
+# Filter by relationship strength
+python foundamental.py analyze --export-graph graph.json --min-strength 0.5
+```
+
+The competitor graph automatically tracks when brands are mentioned together in LLM responses, building a co-mention network over time. This helps you understand:
+- Which brands are considered direct competitors by LLMs
+- How competitive relationships evolve over time
+- The strength of competitive associations based on co-mention frequency and rank proximity
+
+**Export Formats:** JSON, NetworkX, PyTorch Geometric (PyG), Adjacency Matrix (NumPy/CSV)  
 
 ### Export Results
 ```bash
@@ -113,11 +143,15 @@ python foundamental.py analyze --export results.json
 
 ## Output
 
-The application creates a SQLite database (`llmseo.db`) with three main tables:
+The application creates a SQLite database (`llmseo.db`) with several main tables:
 
 - **responses**: Raw LLM responses
 - **mentions**: Brand mentions and rankings  
 - **runs**: Execution metadata
+- **co_mentions**: Co-occurrence relationships between brands
+- **competitor_relationships**: Aggregated competitive relationships over time
+- **sources**: URLs and citations from LLM responses (when using --with-sources)
+- **hallucination_scores**: Reliability scores for detecting hallucinations
 
 ## Example Output
 
@@ -188,7 +222,7 @@ baml-cli generate
 
 ## Roadmap
 - [x] Hallucination Filter: Ask models to output URLs/sources and score confidence
+- [x] Competitor graph (co-mention network over time)
 - [ ] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
-- [ ] Competitor graph (co-mention network over time)
 - [ ] Attribution tests
 - [ ] Simple UI

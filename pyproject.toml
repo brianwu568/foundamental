@@ -7,9 +7,14 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.15",
     "autopep8>=2.3.2",
-    "baml-py>=0.205.0",
+    "baml-py==0.213.0",
     "flake8>=7.3.0",
+    "matplotlib>=3.10.7",
+    "networkx>=3.6",
+    "pandas>=2.3.3",
     "pydantic>=2.11.7",
     "python-dotenv>=1.1.1",
+    "torch>=2.9.1",
+    "torch-geometric>=2.7.0",
     "typing-extensions>=4.14.1",
 ]

@@ -7,6 +7,7 @@ from analyze import main as analyze_results
 from run import main as run_analysis
 from run_with_sources import main as run_analysis_with_sources
 from hallucination_filter import main as hallucination_analysis
+from competitor_graph import main as competitor_graph_analysis
 import argparse
 import asyncio
 
@@ -20,7 +21,10 @@ Examples:
   %(prog)s run --with-sources         # Run with hallucination filter
   %(prog)s analyze --report           # View brand report  
   %(prog)s analyze --compare          # Compare providers
+  %(prog)s analyze --graph            # View competitor graph
+  %(prog)s analyze --graph --brand YourBrand  # Competitor analysis for specific brand
   %(prog)s analyze --export out.json  # Export to JSON
+  %(prog)s analyze --export-graph graph.json  # Export competitor graph to JSON
   %(prog)s sentiment --analyze        # Analyze brand sentiment
   %(prog)s hallucination --analyze    # Analyze hallucination risks
   %(prog)s hallucination --report     # View hallucination report
@@ -45,6 +49,15 @@ Examples:
         '--report', action='store_true', help='Show brand report')
     analyze_parser.add_argument(
         '--compare', action='store_true', help='Show provider comparison')
+    analyze_parser.add_argument(
+        '--graph', action='store_true', help='Show competitor graph analysis')
+    analyze_parser.add_argument(
+        '--brand', type=str, help='Focus graph analysis on specific brand')
+    analyze_parser.add_argument(
+        '--export-graph', type=str, help='Export competitor graph to JSON file')
+    analyze_parser.add_argument(
+        '--min-strength', type=float, default=0.0,
+        help='Minimum relationship strength for graph (0.0-1.0)')
 
     sentiment_parser = subparsers.add_parser(
         'sentiment', help='Analyze brand sentiment')
@@ -83,22 +96,44 @@ Examples:
             print(f"Error during analysis: {e}")
 
     elif args.command == 'analyze':
-        analyze_args = ['analyze.py']
-        if args.db != 'llmseo.db':
-            analyze_args.extend(['--db', args.db])
-        if args.export:
-            analyze_args.extend(['--export', args.export])
-        if args.report:
-            analyze_args.append('--report')
-        if args.compare:
-            analyze_args.append('--compare')
+        # Handle competitor graph analysis
+        if args.graph or args.export_graph:
+            graph_args = ['competitor_graph.py']
+            if args.db != 'llmseo.db':
+                graph_args.extend(['--db', args.db])
+            if args.export_graph:
+                graph_args.extend(['--export', args.export_graph])
+                if args.min_strength > 0.0:
+                    graph_args.extend(['--min-strength', str(args.min_strength)])
+            else:
+                graph_args.append('--report')
+                if args.brand:
+                    graph_args.extend(['--brand', args.brand])
+            
+            original_argv = sys.argv
+            sys.argv = graph_args
+            try:
+                competitor_graph_analysis()
+            finally:
+                sys.argv = original_argv
+        else:
+            # Standard analysis
+            analyze_args = ['analyze.py']
+            if args.db != 'llmseo.db':
+                analyze_args.extend(['--db', args.db])
+            if args.export:
+                analyze_args.extend(['--export', args.export])
+            if args.report:
+                analyze_args.append('--report')
+            if args.compare:
+                analyze_args.append('--compare')
 
-        original_argv = sys.argv
-        sys.argv = analyze_args
-        try:
-            analyze_results()
-        finally:
-            sys.argv = original_argv
+            original_argv = sys.argv
+            sys.argv = analyze_args
+            try:
+                analyze_results()
+            finally:
+                sys.argv = original_argv
 
     elif args.command == 'sentiment':
         sentiment_args = ['sentiment_analyzer.py']

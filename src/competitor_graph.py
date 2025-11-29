@@ -1,0 +1,896 @@
+"""
+Competitor Graph Analysis - Co-mention network tracking over time
+
+This module analyzes how brands are mentioned together in LLM responses,
+building a temporal graph of competitive relationships.
+"""
+
+import sqlite3
+import json
+import csv
+from collections import defaultdict, Counter
+from typing import Dict, List, Tuple, Any, Optional
+from datetime import datetime, timedelta
+import argparse
+
+# Optional dependencies for graph export formats
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    np = None
+    HAS_NUMPY = False
+
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    nx = None
+    HAS_NETWORKX = False
+
+try:
+    import torch
+    from torch_geometric.data import Data as PyGData
+    HAS_TORCH_GEOMETRIC = True
+except ImportError:
+    torch = None
+    PyGData = None
+    HAS_TORCH_GEOMETRIC = False
+
+
+class CompetitorGraphAnalyzer:
+    """Analyzes co-mention patterns to build competitor graphs"""
+    
+    def __init__(self, db_path: str = "llmseo.db"):
+        self.db_path = db_path
+        self.conn = None
+    
+    def __enter__(self):
+        self.conn = sqlite3.connect(self.db_path)
+        self._ensure_tables()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            self.conn.close()
+    
+    def _ensure_tables(self):
+        """Create co-mention tracking tables if they don't exist"""
+        c = self.conn.cursor()
+        
+        # Table for co-mention relationships
+        c.execute('''CREATE TABLE IF NOT EXISTS co_mentions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            response_id INTEGER,
+            brand_id_1 INTEGER,
+            brand_id_2 INTEGER,
+            brand_name_1 TEXT,
+            brand_name_2 TEXT,
+            rank_1 INTEGER,
+            rank_2 INTEGER,
+            rank_distance INTEGER,
+            query_id INTEGER,
+            provider_name TEXT,
+            model_name TEXT,
+            timestamp REAL,
+            FOREIGN KEY (response_id) REFERENCES responses (id)
+        )''')
+        
+        # Table for aggregated competitor relationships over time
+        c.execute('''CREATE TABLE IF NOT EXISTS competitor_relationships (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            brand_id_1 INTEGER,
+            brand_id_2 INTEGER,
+            brand_name_1 TEXT,
+            brand_name_2 TEXT,
+            co_mention_count INTEGER,
+            avg_rank_distance REAL,
+            first_seen REAL,
+            last_seen REAL,
+            strength_score REAL,
+            PRIMARY KEY (brand_id_1, brand_id_2)
+        ) WITHOUT ROWID''')
+        
+        # Index for efficient querying
+        c.execute('''CREATE INDEX IF NOT EXISTS idx_co_mentions_brands 
+                    ON co_mentions(brand_id_1, brand_id_2)''')
+        c.execute('''CREATE INDEX IF NOT EXISTS idx_co_mentions_timestamp 
+                    ON co_mentions(timestamp)''')
+        
+        self.conn.commit()
+    
+    def extract_co_mentions(self) -> int:
+        """
+        Extract co-mention relationships from existing mentions table
+        Returns the number of new co-mentions found
+        """
+        c = self.conn.cursor()
+        
+        # Find all responses with multiple brand mentions
+        c.execute('''
+            SELECT 
+                m1.response_id,
+                m1.brand_id,
+                m1.brand_name,
+                m1.rank_position,
+                m2.brand_id,
+                m2.brand_name,
+                m2.rank_position,
+                r.query_id,
+                r.provider_name,
+                r.model_name,
+                r.timestamp
+            FROM mentions m1
+            JOIN mentions m2 ON m1.response_id = m2.response_id 
+                AND m1.brand_id < m2.brand_id
+            JOIN responses r ON m1.response_id = r.id
+            WHERE r.error_message IS NULL
+            ORDER BY r.timestamp DESC
+        ''')
+        
+        co_mentions = c.fetchall()
+        
+        if not co_mentions:
+            return 0
+        
+        # Check which ones are already recorded
+        c.execute('SELECT MAX(id) FROM co_mentions')
+        last_id = c.fetchone()[0] or 0
+        
+        new_count = 0
+        
+        for row in co_mentions:
+            (response_id, brand_id_1, brand_name_1, rank_1,
+             brand_id_2, brand_name_2, rank_2,
+             query_id, provider, model, timestamp) = row
+            
+            rank_distance = abs(rank_1 - rank_2)
+            
+            # Check if this co-mention already exists
+            c.execute('''
+                SELECT id FROM co_mentions 
+                WHERE response_id = ? 
+                AND brand_id_1 = ? 
+                AND brand_id_2 = ?
+            ''', (response_id, brand_id_1, brand_id_2))
+            
+            if not c.fetchone():
+                c.execute('''
+                    INSERT INTO co_mentions 
+                    (response_id, brand_id_1, brand_id_2, 
+                     brand_name_1, brand_name_2, rank_1, rank_2, 
+                     rank_distance, query_id, provider_name, 
+                     model_name, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (response_id, brand_id_1, brand_id_2,
+                      brand_name_1, brand_name_2, rank_1, rank_2,
+                      rank_distance, query_id, provider, model, timestamp))
+                new_count += 1
+        
+        self.conn.commit()
+        return new_count
+    
+    def update_competitor_relationships(self):
+        """
+        Update aggregated competitor relationships based on co-mentions
+        Calculates strength scores based on frequency and rank proximity
+        """
+        c = self.conn.cursor()
+        
+        # Clear existing relationships
+        c.execute('DELETE FROM competitor_relationships')
+        
+        # Aggregate co-mention data
+        c.execute('''
+            SELECT 
+                brand_id_1,
+                brand_id_2,
+                brand_name_1,
+                brand_name_2,
+                COUNT(*) as co_mention_count,
+                AVG(rank_distance) as avg_rank_distance,
+                MIN(timestamp) as first_seen,
+                MAX(timestamp) as last_seen
+            FROM co_mentions
+            GROUP BY brand_id_1, brand_id_2
+        ''')
+        
+        relationships = c.fetchall()
+        
+        for row in relationships:
+            (brand_id_1, brand_id_2, brand_name_1, brand_name_2,
+             co_mention_count, avg_rank_distance, first_seen, last_seen) = row
+            
+            # Calculate strength score
+            # Higher frequency = stronger relationship
+            # Lower rank distance = stronger relationship
+            # Normalize: frequency (0-1) * proximity_factor (0-1)
+            max_distance = 10  # Assume max distance is 10
+            proximity_factor = 1 - min(avg_rank_distance, max_distance) / max_distance
+            
+            # Simple strength calculation - can be enhanced
+            strength_score = (min(co_mention_count / 10, 1.0) * 0.6 + 
+                            proximity_factor * 0.4)
+            
+            c.execute('''
+                INSERT INTO competitor_relationships
+                (brand_id_1, brand_id_2, brand_name_1, brand_name_2,
+                 co_mention_count, avg_rank_distance, first_seen, 
+                 last_seen, strength_score)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (brand_id_1, brand_id_2, brand_name_1, brand_name_2,
+                  co_mention_count, avg_rank_distance, first_seen,
+                  last_seen, strength_score))
+        
+        self.conn.commit()
+        return len(relationships)
+    
+    def get_competitor_graph(self, brand_id: Optional[int] = None, 
+                            min_strength: float = 0.0) -> Dict[str, Any]:
+        """
+        Get competitor graph data
+        
+        Args:
+            brand_id: Filter by specific brand (None = all brands)
+            min_strength: Minimum strength score to include
+            
+        Returns:
+            Dictionary with nodes and edges for graph visualization
+        """
+        c = self.conn.cursor()
+        
+        # Build query based on filters
+        where_clauses = ['strength_score >= ?']
+        params = [min_strength]
+        
+        if brand_id is not None:
+            where_clauses.append('(brand_id_1 = ? OR brand_id_2 = ?)')
+            params.extend([brand_id, brand_id])
+        
+        where_sql = ' AND '.join(where_clauses)
+        
+        c.execute(f'''
+            SELECT 
+                brand_name_1,
+                brand_name_2,
+                co_mention_count,
+                avg_rank_distance,
+                strength_score,
+                first_seen,
+                last_seen
+            FROM competitor_relationships
+            WHERE {where_sql}
+            ORDER BY strength_score DESC
+        ''', params)
+        
+        edges = c.fetchall()
+        
+        # Build nodes set
+        nodes = set()
+        edge_list = []
+        
+        for row in edges:
+            (brand1, brand2, count, avg_dist, strength, 
+             first_seen, last_seen) = row
+            
+            nodes.add(brand1)
+            nodes.add(brand2)
+            
+            edge_list.append({
+                "source": brand1,
+                "target": brand2,
+                "weight": strength,
+                "co_mentions": count,
+                "avg_distance": round(avg_dist, 2),
+                "first_seen": datetime.fromtimestamp(first_seen).isoformat(),
+                "last_seen": datetime.fromtimestamp(last_seen).isoformat()
+            })
+        
+        return {
+            "nodes": [{"id": node, "label": node} for node in sorted(nodes)],
+            "edges": edge_list,
+            "metadata": {
+                "total_nodes": len(nodes),
+                "total_edges": len(edge_list),
+                "min_strength_filter": min_strength
+            }
+        }
+    
+    def get_temporal_evolution(self, days: int = 30, 
+                               window_days: int = 7) -> List[Dict[str, Any]]:
+        """
+        Get temporal evolution of competitor relationships
+        
+        Args:
+            days: Number of days to look back
+            window_days: Rolling window size in days
+            
+        Returns:
+            List of time-windowed graph snapshots
+        """
+        c = self.conn.cursor()
+        
+        # Get timestamp range
+        now = datetime.now().timestamp()
+        start_time = (datetime.now() - timedelta(days=days)).timestamp()
+        
+        snapshots = []
+        current_time = start_time
+        window_seconds = window_days * 86400
+        
+        while current_time < now:
+            window_start = current_time
+            window_end = current_time + window_seconds
+            
+            c.execute('''
+                SELECT 
+                    brand_name_1,
+                    brand_name_2,
+                    COUNT(*) as count,
+                    AVG(rank_distance) as avg_distance
+                FROM co_mentions
+                WHERE timestamp >= ? AND timestamp < ?
+                GROUP BY brand_id_1, brand_id_2
+            ''', (window_start, window_end))
+            
+            results = c.fetchall()
+            
+            if results:
+                edges = []
+                for brand1, brand2, count, avg_dist in results:
+                    edges.append({
+                        "source": brand1,
+                        "target": brand2,
+                        "count": count,
+                        "avg_distance": round(avg_dist, 2)
+                    })
+                
+                snapshots.append({
+                    "window_start": datetime.fromtimestamp(window_start).isoformat(),
+                    "window_end": datetime.fromtimestamp(window_end).isoformat(),
+                    "edges": edges,
+                    "edge_count": len(edges)
+                })
+            
+            current_time += window_seconds
+        
+        return snapshots
+    
+    def get_brand_competitors(self, brand_name: str, 
+                             top_n: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get top competitors for a specific brand
+        
+        Args:
+            brand_name: Name of the brand to analyze
+            top_n: Number of top competitors to return
+            
+        Returns:
+            List of competitor dictionaries sorted by strength
+        """
+        c = self.conn.cursor()
+        
+        c.execute('''
+            SELECT 
+                CASE 
+                    WHEN brand_name_1 = ? THEN brand_name_2
+                    ELSE brand_name_1
+                END as competitor,
+                co_mention_count,
+                avg_rank_distance,
+                strength_score,
+                first_seen,
+                last_seen
+            FROM competitor_relationships
+            WHERE brand_name_1 = ? OR brand_name_2 = ?
+            ORDER BY strength_score DESC
+            LIMIT ?
+        ''', (brand_name, brand_name, brand_name, top_n))
+        
+        results = c.fetchall()
+        
+        competitors = []
+        for row in results:
+            competitor, count, avg_dist, strength, first, last = row
+            competitors.append({
+                "name": competitor,
+                "co_mentions": count,
+                "avg_rank_distance": round(avg_dist, 2),
+                "strength": round(strength, 3),
+                "relationship_age_days": round((last - first) / 86400, 1),
+                "last_seen": datetime.fromtimestamp(last).isoformat()
+            })
+        
+        return competitors
+    
+    def to_networkx(self, min_strength: float = 0.0, include_attributes: bool = True):
+        """
+        Convert competitor graph to NetworkX format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            include_attributes: Whether to include edge attributes (weight, co_mentions, etc.)
+            
+        Returns:
+            NetworkX Graph object
+            
+        Raises:
+            ImportError: If networkx is not installed
+        """
+        if not HAS_NETWORKX:
+            raise ImportError(
+                "NetworkX is required for this feature. Install with: pip install networkx"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create undirected graph
+        G = nx.Graph()
+        
+        # Add nodes with attributes
+        for node in graph_data['nodes']:
+            G.add_node(node['id'], label=node['label'])
+        
+        # Add edges with attributes
+        for edge in graph_data['edges']:
+            if include_attributes:
+                G.add_edge(
+                    edge['source'],
+                    edge['target'],
+                    weight=edge['weight'],
+                    co_mentions=edge['co_mentions'],
+                    avg_distance=edge['avg_distance'],
+                    first_seen=edge['first_seen'],
+                    last_seen=edge['last_seen']
+                )
+            else:
+                G.add_edge(edge['source'], edge['target'], weight=edge['weight'])
+        
+        return G
+    
+    def to_pyg(self, min_strength: float = 0.0, include_node_features: bool = False):
+        """
+        Convert competitor graph to PyTorch Geometric (PyG) format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            include_node_features: Whether to include node feature matrix
+            
+        Returns:
+            torch_geometric.data.Data object with:
+                - edge_index: Graph connectivity in COO format [2, num_edges]
+                - edge_attr: Edge attributes (weight, co_mentions, avg_distance) [num_edges, 3]
+                - node_names: List of node names (for reference)
+                - x: Node feature matrix (optional) [num_nodes, num_features]
+            
+        Raises:
+            ImportError: If torch or torch_geometric is not installed
+        """
+        if not HAS_TORCH_GEOMETRIC:
+            raise ImportError(
+                "PyTorch Geometric is required for this feature. "
+                "Install with: pip install torch torch-geometric"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create node to index mapping
+        nodes = graph_data['nodes']
+        node_names = [node['id'] for node in nodes]
+        node_to_idx = {name: idx for idx, name in enumerate(node_names)}
+        
+        # Build edge index and edge attributes
+        edge_index = []
+        edge_attr = []
+        
+        for edge in graph_data['edges']:
+            src_idx = node_to_idx[edge['source']]
+            dst_idx = node_to_idx[edge['target']]
+            
+            # Add both directions for undirected graph
+            edge_index.append([src_idx, dst_idx])
+            edge_index.append([dst_idx, src_idx])
+            
+            # Edge attributes: [weight, co_mentions, avg_distance]
+            attrs = [
+                edge['weight'],
+                float(edge['co_mentions']),
+                edge['avg_distance']
+            ]
+            edge_attr.append(attrs)
+            edge_attr.append(attrs)  # Same attributes for reverse edge
+        
+        # Convert to tensors
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+        edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+        
+        # Create PyG Data object
+        data = PyGData(
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=len(node_names)
+        )
+        
+        # Store node names as attribute (not tensor)
+        data.node_names = node_names
+        
+        # Optionally add node features
+        if include_node_features:
+            # Calculate node features based on graph statistics
+            c = self.conn.cursor()
+            node_features = []
+            
+            for node_name in node_names:
+                # Get statistics for this node
+                c.execute('''
+                    SELECT 
+                        COUNT(*) as total_relationships,
+                        AVG(strength_score) as avg_strength,
+                        AVG(co_mention_count) as avg_co_mentions,
+                        AVG(avg_rank_distance) as avg_rank_dist
+                    FROM competitor_relationships
+                    WHERE brand_name_1 = ? OR brand_name_2 = ?
+                ''', (node_name, node_name))
+                
+                stats = c.fetchone()
+                total_rel, avg_str, avg_co, avg_rank = stats
+                
+                # Feature vector: [degree, avg_strength, avg_co_mentions, avg_rank_distance]
+                features = [
+                    float(total_rel or 0),
+                    float(avg_str or 0),
+                    float(avg_co or 0),
+                    float(avg_rank or 0)
+                ]
+                node_features.append(features)
+            
+            data.x = torch.tensor(node_features, dtype=torch.float)
+        
+        return data
+    
+    def to_adjacency_matrix(self, min_strength: float = 0.0, weighted: bool = True):
+        """
+        Convert competitor graph to adjacency matrix format
+        
+        Args:
+            min_strength: Minimum relationship strength to include
+            weighted: If True, use strength scores as weights; if False, binary (0/1)
+            
+        Returns:
+            Tuple of (adjacency_matrix, node_names) where:
+                - adjacency_matrix: 2D numpy array [num_nodes, num_nodes]
+                - node_names: List of node names corresponding to matrix indices
+            
+        Raises:
+            ImportError: If numpy is not installed
+        """
+        try:
+            import numpy as np
+        except ImportError:
+            raise ImportError(
+                "NumPy is required for this feature. Install with: pip install numpy"
+            )
+        
+        # Get graph data
+        graph_data = self.get_competitor_graph(min_strength=min_strength)
+        
+        # Create node to index mapping
+        nodes = graph_data['nodes']
+        node_names = [node['id'] for node in nodes]
+        node_to_idx = {name: idx for idx, name in enumerate(node_names)}
+        num_nodes = len(node_names)
+        
+        # Initialize adjacency matrix
+        adj_matrix = np.zeros((num_nodes, num_nodes), dtype=np.float32)
+        
+        # Fill adjacency matrix
+        for edge in graph_data['edges']:
+            src_idx = node_to_idx[edge['source']]
+            dst_idx = node_to_idx[edge['target']]
+            
+            if weighted:
+                weight = edge['weight']
+            else:
+                weight = 1.0
+            
+            # Symmetric (undirected graph)
+            adj_matrix[src_idx, dst_idx] = weight
+            adj_matrix[dst_idx, src_idx] = weight
+        
+        return adj_matrix, node_names
+
+
+def print_competitor_graph_report(db_path: str = "llmseo.db", 
+                                 brand_name: Optional[str] = None):
+    """Print a comprehensive competitor graph report"""
+    
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        print("\n" + "="*70)
+        print("COMPETITOR GRAPH ANALYSIS")
+        print("="*70 + "\n")
+        
+        # Extract and update data
+        print("Analyzing co-mention patterns...")
+        new_co_mentions = analyzer.extract_co_mentions()
+        print(f"✓ Found {new_co_mentions} new co-mentions")
+        
+        relationships_count = analyzer.update_competitor_relationships()
+        print(f"✓ Updated {relationships_count} competitor relationships\n")
+        
+        if relationships_count == 0:
+            print("No competitor relationships found.")
+            print("Brands need to be mentioned together in responses to build the graph.")
+            return
+        
+        # Overall network statistics
+        graph = analyzer.get_competitor_graph(min_strength=0.0)
+        print(f"NETWORK STATISTICS")
+        print("-" * 70)
+        print(f"Total Brands: {graph['metadata']['total_nodes']}")
+        print(f"Total Relationships: {graph['metadata']['total_edges']}")
+        
+        # Top relationships
+        print(f"\nSTRONGEST COMPETITOR RELATIONSHIPS")
+        print("-" * 70)
+        top_edges = sorted(graph['edges'], key=lambda x: x['weight'], reverse=True)[:10]
+        
+        for i, edge in enumerate(top_edges, 1):
+            print(f"{i}. {edge['source']} ↔ {edge['target']}")
+            print(f"   Strength: {edge['weight']:.3f} | "
+                  f"Co-mentions: {edge['co_mentions']} | "
+                  f"Avg Rank Distance: {edge['avg_distance']}")
+        
+        # Brand-specific analysis
+        if brand_name:
+            print(f"\n{brand_name.upper()} - COMPETITOR ANALYSIS")
+            print("-" * 70)
+            competitors = analyzer.get_brand_competitors(brand_name, top_n=10)
+            
+            if competitors:
+                for i, comp in enumerate(competitors, 1):
+                    print(f"{i}. {comp['name']}")
+                    print(f"   Strength: {comp['strength']} | "
+                          f"Co-mentions: {comp['co_mentions']} | "
+                          f"Avg Distance: {comp['avg_rank_distance']} ranks")
+                    print(f"   Relationship Age: {comp['relationship_age_days']} days | "
+                          f"Last Seen: {comp['last_seen']}")
+            else:
+                print(f"No competitors found for {brand_name}")
+        
+        # Temporal evolution
+        print(f"\nTEMPORAL EVOLUTION (Last 30 Days)")
+        print("-" * 70)
+        evolution = analyzer.get_temporal_evolution(days=30, window_days=7)
+        
+        if evolution:
+            for snapshot in evolution:
+                print(f"\n{snapshot['window_start'][:10]} to {snapshot['window_end'][:10]}")
+                print(f"  Active Relationships: {snapshot['edge_count']}")
+                if snapshot['edge_count'] > 0:
+                    top_3 = sorted(snapshot['edges'], 
+                                  key=lambda x: x['count'], 
+                                  reverse=True)[:3]
+                    for edge in top_3:
+                        print(f"    • {edge['source']} ↔ {edge['target']} "
+                              f"({edge['count']} mentions)")
+        else:
+            print("Not enough historical data for temporal analysis")
+
+
+def export_competitor_graph(db_path: str = "llmseo.db", 
+                           output_file: str = "competitor_graph.json",
+                           min_strength: float = 0.0):
+    """Export competitor graph to JSON for external visualization"""
+    
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        # Extract latest data
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        # Get graph data
+        graph = analyzer.get_competitor_graph(min_strength=min_strength)
+        evolution = analyzer.get_temporal_evolution(days=90, window_days=7)
+        
+        export_data = {
+            "graph": graph,
+            "temporal_evolution": evolution,
+            "generated_at": datetime.now().isoformat(),
+            "min_strength_threshold": min_strength
+        }
+        
+        with open(output_file, 'w') as f:
+            json.dump(export_data, f, indent=2)
+        
+        print(f"✓ Competitor graph exported to {output_file}")
+        print(f"  Nodes: {graph['metadata']['total_nodes']}")
+        print(f"  Edges: {graph['metadata']['total_edges']}")
+        print(f"  Time Windows: {len(evolution)}")
+
+
+def export_networkx(db_path: str = "llmseo.db",
+                   output_file: str = "competitor_graph.gpickle",
+                   min_strength: float = 0.0):
+    """
+    Export competitor graph to NetworkX format
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.gpickle or .gml)
+        min_strength: Minimum relationship strength to include
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            G = analyzer.to_networkx(min_strength=min_strength)
+            
+            # Determine format from extension
+            if output_file.endswith('.gml'):
+                import networkx as nx
+                nx.write_gml(G, output_file)
+            else:
+                # Default to pickle format
+                import networkx as nx
+                nx.write_gpickle(G, output_file)
+            
+            print(f"✓ NetworkX graph exported to {output_file}")
+            print(f"  Nodes: {G.number_of_nodes()}")
+            print(f"  Edges: {G.number_of_edges()}")
+            print(f"\nUsage example:")
+            print(f"  import networkx as nx")
+            print(f"  G = nx.read_gpickle('{output_file}')")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install NetworkX with: pip install networkx")
+
+
+def export_pyg(db_path: str = "llmseo.db",
+              output_file: str = "competitor_graph.pt",
+              min_strength: float = 0.0,
+              include_node_features: bool = True):
+    """
+    Export competitor graph to PyTorch Geometric format
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.pt)
+        min_strength: Minimum relationship strength to include
+        include_node_features: Whether to include node feature matrix
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            import torch
+            data = analyzer.to_pyg(min_strength=min_strength, 
+                                  include_node_features=include_node_features)
+            
+            torch.save(data, output_file)
+            
+            print(f"✓ PyTorch Geometric graph exported to {output_file}")
+            print(f"  Nodes: {data.num_nodes}")
+            print(f"  Edges: {data.edge_index.shape[1]}")
+            if include_node_features:
+                print(f"  Node features: {data.x.shape}")
+            print(f"  Edge attributes: {data.edge_attr.shape}")
+            print(f"\nUsage example:")
+            print(f"  import torch")
+            print(f"  from torch_geometric.data import Data")
+            print(f"  data = torch.load('{output_file}')")
+            print(f"  print(data.node_names)  # List of brand names")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install PyTorch Geometric with:")
+            print("  pip install torch torch-geometric")
+
+
+def export_adjacency_matrix(db_path: str = "llmseo.db",
+                            output_file: str = "adjacency_matrix.npy",
+                            min_strength: float = 0.0,
+                            weighted: bool = True):
+    """
+    Export competitor graph as adjacency matrix
+    
+    Args:
+        db_path: Path to SQLite database
+        output_file: Output file path (.npy or .csv)
+        min_strength: Minimum relationship strength to include
+        weighted: If True, use strength scores; if False, binary
+    """
+    with CompetitorGraphAnalyzer(db_path) as analyzer:
+        analyzer.extract_co_mentions()
+        analyzer.update_competitor_relationships()
+        
+        try:
+            import numpy as np
+            adj_matrix, node_names = analyzer.to_adjacency_matrix(
+                min_strength=min_strength, 
+                weighted=weighted
+            )
+            
+            if output_file.endswith('.csv'):
+                # Export as CSV with headers
+                import csv
+                with open(output_file, 'w', newline='') as f:
+                    writer = csv.writer(f)
+                    # Write header
+                    writer.writerow([''] + node_names)
+                    # Write rows
+                    for i, row in enumerate(adj_matrix):
+                        writer.writerow([node_names[i]] + row.tolist())
+            else:
+                # Save as numpy array
+                np.save(output_file, adj_matrix)
+                # Also save node names
+                node_names_file = output_file.replace('.npy', '_nodes.txt')
+                with open(node_names_file, 'w') as f:
+                    f.write('\n'.join(node_names))
+                print(f"  Node names saved to {node_names_file}")
+            
+            print(f"✓ Adjacency matrix exported to {output_file}")
+            print(f"  Shape: {adj_matrix.shape}")
+            print(f"  Type: {'Weighted' if weighted else 'Binary'}")
+            print(f"\nUsage example:")
+            if output_file.endswith('.csv'):
+                print(f"  import pandas as pd")
+                print(f"  df = pd.read_csv('{output_file}', index_col=0)")
+            else:
+                print(f"  import numpy as np")
+                print(f"  matrix = np.load('{output_file}')")
+            
+        except ImportError as e:
+            print(f"❌ Error: {e}")
+            print("Install NumPy with: pip install numpy")
+
+
+def main():
+    """Main CLI for competitor graph analysis"""
+    parser = argparse.ArgumentParser(
+        description='Competitor Graph Analysis - Track co-mention networks over time')
+    parser.add_argument('--db', default='llmseo.db', help='Database file path')
+    parser.add_argument('--report', action='store_true', 
+                       help='Show competitor graph report')
+    parser.add_argument('--brand', type=str, 
+                       help='Focus analysis on specific brand')
+    parser.add_argument('--export', type=str, 
+                       help='Export graph to JSON file')
+    parser.add_argument('--export-networkx', type=str,
+                       help='Export to NetworkX format (.gpickle or .gml)')
+    parser.add_argument('--export-pyg', type=str,
+                       help='Export to PyTorch Geometric format (.pt)')
+    parser.add_argument('--export-adjacency', type=str,
+                       help='Export as adjacency matrix (.npy or .csv)')
+    parser.add_argument('--min-strength', type=float, default=0.0,
+                       help='Minimum relationship strength (0.0-1.0)')
+    parser.add_argument('--no-node-features', action='store_true',
+                       help='Exclude node features (PyG export only)')
+    parser.add_argument('--binary', action='store_true',
+                       help='Use binary adjacency matrix (adjacency export only)')
+    
+    args = parser.parse_args()
+    
+    if args.export:
+        export_competitor_graph(args.db, args.export, args.min_strength)
+    elif args.export_networkx:
+        export_networkx(args.db, args.export_networkx, args.min_strength)
+    elif args.export_pyg:
+        export_pyg(args.db, args.export_pyg, args.min_strength, 
+                  include_node_features=not args.no_node_features)
+    elif args.export_adjacency:
+        export_adjacency_matrix(args.db, args.export_adjacency, 
+                               args.min_strength, weighted=not args.binary)
+    elif args.report or args.brand:
+        print_competitor_graph_report(args.db, args.brand)
+    else:
+        # Default: show report
+        print_competitor_graph_report(args.db)
+
+
+if __name__ == "__main__":
+    main()

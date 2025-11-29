@@ -15,8 +15,10 @@ import sqlite3
 from pathlib import Path
 import sys
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 
 from providers.openai_provider_with_sources import OpenAIProviderWithSources
 from hallucination_filter import (

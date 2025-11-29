@@ -4,6 +4,7 @@ Run LLM SEO analysis with Hallucination Filter support
 
 This module runs brand visibility analysis with optional hallucination detection.
 It can collect sources and confidence scores from LLMs to verify claims.
+Co-mention relationships are automatically tracked for competitor graph analysis.
 """
 import re
 import asyncio
@@ -60,6 +61,57 @@ def match_brand(name: str, brand):
         if alias.lower() == target:
             return alias
     return None
+
+
+def extract_co_mentions_for_response(conn, response_id, mentioned_brands, 
+                                     query_id, provider_name, model_name, timestamp):
+    """
+    Extract co-mention relationships from a response
+    
+    Args:
+        conn: Database connection
+        response_id: ID of the response
+        mentioned_brands: List of tuples (brand_id, brand_name, rank_position)
+        query_id: ID of the query
+        provider_name: Name of the provider
+        model_name: Name of the model
+        timestamp: Timestamp of the response
+    """
+    if len(mentioned_brands) < 2:
+        return 0
+    
+    c = conn.cursor()
+    co_mentions_added = 0
+    
+    # Create co-mention pairs (ensuring brand_id_1 < brand_id_2)
+    for i in range(len(mentioned_brands)):
+        for j in range(i + 1, len(mentioned_brands)):
+            brand1 = mentioned_brands[i]
+            brand2 = mentioned_brands[j]
+            
+            # Ensure consistent ordering
+            if brand1[0] < brand2[0]:
+                b1_id, b1_name, b1_rank = brand1
+                b2_id, b2_name, b2_rank = brand2
+            else:
+                b2_id, b2_name, b2_rank = brand1
+                b1_id, b1_name, b1_rank = brand2
+            
+            rank_distance = abs(b1_rank - b2_rank)
+            
+            c.execute('''
+                INSERT INTO co_mentions 
+                (response_id, brand_id_1, brand_id_2, brand_name_1, brand_name_2,
+                 rank_1, rank_2, rank_distance, query_id, provider_name, 
+                 model_name, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (response_id, b1_id, b2_id, b1_name, b2_name,
+                  b1_rank, b2_rank, rank_distance, query_id,
+                  provider_name, model_name, timestamp))
+            
+            co_mentions_added += 1
+    
+    return co_mentions_added
 
 
 def create_tables(conn):
@@ -127,6 +179,38 @@ def create_tables(conn):
         timestamp REAL,
         FOREIGN KEY (mention_id) REFERENCES mentions (id)
     )''')
+    
+    # Competitor graph tables
+    c.execute('''CREATE TABLE IF NOT EXISTS co_mentions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        response_id INTEGER,
+        brand_id_1 INTEGER,
+        brand_id_2 INTEGER,
+        brand_name_1 TEXT,
+        brand_name_2 TEXT,
+        rank_1 INTEGER,
+        rank_2 INTEGER,
+        rank_distance INTEGER,
+        query_id INTEGER,
+        provider_name TEXT,
+        model_name TEXT,
+        timestamp REAL,
+        FOREIGN KEY (response_id) REFERENCES responses (id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS competitor_relationships (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        brand_id_1 INTEGER,
+        brand_id_2 INTEGER,
+        brand_name_1 TEXT,
+        brand_name_2 TEXT,
+        co_mention_count INTEGER,
+        avg_rank_distance REAL,
+        first_seen REAL,
+        last_seen REAL,
+        strength_score REAL,
+        PRIMARY KEY (brand_id_1, brand_id_2)
+    ) WITHOUT ROWID''')
 
     conn.commit()
 
@@ -173,13 +257,17 @@ async def main(with_sources=False):
                 answers = res.get("answers", [])
                 raw = json.dumps(res)
                 
+                current_timestamp = time.time()
+                
                 c.execute('''INSERT INTO responses (query_id, provider_name, model_name, raw_response, timestamp)
                             VALUES (?, ?, ?, ?, ?)''',
                           (q["id"], provider.name, getattr(provider, 'model', 'unknown'),
-                           raw, time.time()))
+                           raw, current_timestamp))
                 response_id = c.lastrowid
                 
                 mentions_found = 0
+                mentioned_brands = []  # Track brands mentioned in this response
+                
                 for idx, a in enumerate(answers):
                     answer_name = a.get("name", "")
                     answer_why = a.get("why", "")
@@ -190,13 +278,17 @@ async def main(with_sources=False):
                         alias = match_brand(answer_name, brand)
                         if alias:
                             mentions_found += 1
+                            rank_position = idx + 1
+                            
+                            # Track for co-mention analysis
+                            mentioned_brands.append((brand["id"], brand["name"], rank_position))
                             
                             # Insert mention
                             c.execute('''INSERT INTO mentions 
                                         (response_id, brand_id, brand_name, alias_used, rank_position, explanation, timestamp)
                                         VALUES (?, ?, ?, ?, ?, ?, ?)''',
                                       (response_id, brand["id"], brand["name"], alias,
-                                       idx + 1, answer_why, time.time()))
+                                       rank_position, answer_why, current_timestamp))
                             mention_id = c.lastrowid
                             
                             # Insert sources if available
@@ -207,12 +299,22 @@ async def main(with_sources=False):
                                                 VALUES (?, ?, ?, ?, ?)''',
                                              (mention_id, source.get("url", ""),
                                               source.get("title"), source.get("description"),
-                                              time.time()))
+                                              current_timestamp))
                                 
-                                print(f"    ✓ Found {brand['name']} at rank #{idx + 1} "
+                                print(f"    ✓ Found {brand['name']} at rank #{rank_position} "
                                       f"(confidence: {answer_confidence:.2f}, sources: {len(answer_sources)})")
                             else:
-                                print(f"    ✓ Found {brand['name']} at rank #{idx + 1}")
+                                print(f"    ✓ Found {brand['name']} at rank #{rank_position}")
+                
+                # Extract co-mentions for this response
+                if len(mentioned_brands) >= 2:
+                    co_mention_count = extract_co_mentions_for_response(
+                        conn, response_id, mentioned_brands,
+                        q["id"], provider.name, getattr(provider, 'model', 'unknown'),
+                        current_timestamp
+                    )
+                    if co_mention_count > 0:
+                        print(f"    → Tracked {co_mention_count} co-mention relationship(s)")
 
                 if mentions_found == 0:
                     print(f"    No brand mentions found in top {q['k']} results")
@@ -245,12 +347,27 @@ async def main(with_sources=False):
     print(f"Errors: {error_count}/{total_operations}")
     print(f"Database: llmseo.db")
     
+    # Check if co-mentions were tracked
+    c = conn.cursor()
+    c.execute('SELECT COUNT(*) FROM co_mentions')
+    co_mention_count = c.fetchone()[0]
+    if co_mention_count > 0:
+        print(f"\nCompetitor Graph: {co_mention_count} co-mention relationships tracked")
+    
     if with_sources:
         print(f"\nNext steps:")
         print(f"  1. Run hallucination analysis:")
-        print(f"     python src/hallucination_filter.py --analyze --verify-urls")
+        print(f"     python foundamental.py hallucination --analyze --verify-urls")
         print(f"  2. View hallucination report:")
-        print(f"     python src/hallucination_filter.py --report")
+        print(f"     python foundamental.py hallucination --report")
+        print(f"  3. View competitor graph:")
+        print(f"     python foundamental.py analyze --graph")
+    else:
+        print(f"\nNext steps:")
+        print(f"  1. View analysis results:")
+        print(f"     python foundamental.py analyze --report")
+        print(f"  2. View competitor graph:")
+        print(f"     python foundamental.py analyze --graph")
 
 
 if __name__ == "__main__":
