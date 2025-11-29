@@ -1,0 +1,207 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>⚡ Provider Performance Comparison</h3>
+    </div>
+    <div class="card-content">
+        <table class="data-table sortable">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th>Total Mentions</th>
+                    <th>Avg Rank</th>
+                    <th>Responses</th>
+                    <th>Success Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for provider in providers %}
+                <tr>
+                    <td>
+                        <span class="provider-badge provider-{{ provider.provider | lower }}">
+                            {{ provider.provider }}
+                        </span>
+                    </td>
+                    <td><strong>{{ provider.model }}</strong></td>
+                    <td>
+                        <div class="bar-cell">
+                            <div class="bar" style="width: {{ provider.total_mentions * 5 }}px; max-width: 200px;"></div>
+                            <span>{{ provider.total_mentions }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if provider.avg_rank %}
+                            <span class="rank-indicator {% if provider.avg_rank <= 3 %}rank-top{% elif provider.avg_rank <= 5 %}rank-mid{% else %}rank-low{% endif %}">
+                                {{ provider.avg_rank | round(precision=1) }}
+                            </span>
+                        {% else %}
+                            <span class="muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="responses-count">
+                            {{ provider.successful_responses }} / {{ provider.total_responses }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="success-rate">
+                            <div class="success-bar" style="width: {{ provider.success_rate }}%"></div>
+                            <span class="{% if provider.success_rate >= 90 %}good{% elif provider.success_rate >= 70 %}warning{% else %}bad{% endif %}">
+                                {{ provider.success_rate | round(precision=1) }}%
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if providers | length == 0 %}
+        <div class="empty-state">
+            <p>📭 No provider data found</p>
+            <p class="muted">Run the LLM SEO analysis to generate provider performance data</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>📊 Mentions by Provider</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="mentionsChart" height="300"></canvas>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>🎯 Average Rank by Provider</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="rankChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>✅ Success Rate Comparison</h3>
+    </div>
+    <div class="card-content">
+        <canvas id="successChart" height="200"></canvas>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+const providers = {{ providers | json_encode() | safe }};
+
+const labels = providers.map(p => `${p.provider} (${p.model})`);
+const colors = [
+    'rgba(99, 102, 241, 0.8)',
+    'rgba(236, 72, 153, 0.8)',
+    'rgba(34, 197, 94, 0.8)',
+    'rgba(234, 179, 8, 0.8)',
+    'rgba(239, 68, 68, 0.8)',
+    'rgba(139, 92, 246, 0.8)'
+];
+
+// Mentions chart
+new Chart(document.getElementById('mentionsChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Total Mentions',
+            data: providers.map(p => p.total_mentions),
+            backgroundColor: colors,
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+// Average rank chart
+new Chart(document.getElementById('rankChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Average Rank',
+            data: providers.map(p => p.avg_rank || 0),
+            backgroundColor: providers.map(p => {
+                const rank = p.avg_rank || 10;
+                if (rank <= 3) return 'rgba(34, 197, 94, 0.8)';
+                if (rank <= 5) return 'rgba(234, 179, 8, 0.8)';
+                return 'rgba(239, 68, 68, 0.8)';
+            }),
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true,
+                reverse: true,
+                title: {
+                    display: true,
+                    text: 'Rank (lower is better)'
+                }
+            }
+        }
+    }
+});
+
+// Success rate chart
+new Chart(document.getElementById('successChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Success Rate (%)',
+            data: providers.map(p => p.success_rate),
+            backgroundColor: providers.map(p => {
+                if (p.success_rate >= 90) return 'rgba(34, 197, 94, 0.8)';
+                if (p.success_rate >= 70) return 'rgba(234, 179, 8, 0.8)';
+                return 'rgba(239, 68, 68, 0.8)';
+            }),
+            borderRadius: 4
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: { 
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: value => value + '%'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock scripts %}

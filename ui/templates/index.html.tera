@@ -1,0 +1,150 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🏷️</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_brands }}</h3>
+            <p>Tracked Brands</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_responses }}</h3>
+            <p>LLM Responses</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📍</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_mentions }}</h3>
+            <p>Brand Mentions</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_co_mentions }}</h3>
+            <p>Co-Mentions</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>🛡️ Reliability Overview</h3>
+        </div>
+        <div class="card-content">
+            <div class="reliability-score">
+                <div class="score-circle" data-score="{{ stats.avg_reliability }}">
+                    <span class="score-value">{{ stats.avg_reliability | round(precision=2) }}</span>
+                </div>
+                <p>Average Reliability Score</p>
+            </div>
+            <div class="risk-breakdown">
+                <div class="risk-item risk-low">
+                    <span class="risk-count">{{ stats.low_risk_count }}</span>
+                    <span class="risk-label">Low Risk</span>
+                </div>
+                <div class="risk-item risk-medium">
+                    <span class="risk-count">{{ stats.medium_risk_count }}</span>
+                    <span class="risk-label">Medium Risk</span>
+                </div>
+                <div class="risk-item risk-high">
+                    <span class="risk-count">{{ stats.high_risk_count }}</span>
+                    <span class="risk-label">High Risk</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>⚡ Provider Performance</h3>
+            <a href="/providers" class="view-all">View All →</a>
+        </div>
+        <div class="card-content">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Model</th>
+                        <th>Mentions</th>
+                        <th>Success</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for provider in providers %}
+                    <tr>
+                        <td><strong>{{ provider.provider }}</strong></td>
+                        <td>{{ provider.model }}</td>
+                        <td>{{ provider.total_mentions }}</td>
+                        <td>
+                            <span class="success-badge {% if provider.success_rate >= 90 %}good{% elif provider.success_rate >= 70 %}warning{% else %}bad{% endif %}">
+                                {{ provider.success_rate | round(precision=1) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card full-width">
+        <div class="card-header">
+            <h3>📋 Recent Mentions</h3>
+            <a href="/brands" class="view-all">View All →</a>
+        </div>
+        <div class="card-content">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Brand</th>
+                        <th>Alias Used</th>
+                        <th>Rank</th>
+                        <th>Explanation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mention in recent_mentions %}
+                    <tr>
+                        <td><strong>{{ mention.brand_name }}</strong></td>
+                        <td>{{ mention.alias_used }}</td>
+                        <td>
+                            <span class="rank-badge rank-{{ mention.rank_position }}">
+                                #{{ mention.rank_position }}
+                            </span>
+                        </td>
+                        <td class="explanation-cell">
+                            {% if mention.explanation %}
+                                {{ mention.explanation | truncate(length=80) }}
+                            {% else %}
+                                <span class="muted">No explanation</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate score circles
+    const scoreCircles = document.querySelectorAll('.score-circle');
+    scoreCircles.forEach(circle => {
+        const score = parseFloat(circle.dataset.score) || 0;
+        const hue = Math.min(120, score * 120); // 0 = red, 120 = green
+        circle.style.borderColor = `hsl(${hue}, 70%, 50%)`;
+    });
+});
+</script>
+{% endblock scripts %}

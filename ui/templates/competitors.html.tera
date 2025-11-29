@@ -1,0 +1,464 @@
+{% extends "base" %}
+
+{% block head %}
+<style>
+    #graph-container {
+        width: 100%;
+        height: 600px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    #graph-container svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .node circle {
+        stroke: #fff;
+        stroke-width: 2px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .node circle:hover {
+        stroke-width: 4px;
+        filter: brightness(1.2);
+    }
+    
+    .node text {
+        fill: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        pointer-events: none;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    
+    .link {
+        stroke-opacity: 0.6;
+        transition: stroke-opacity 0.3s ease;
+    }
+    
+    .link:hover {
+        stroke-opacity: 1;
+    }
+    
+    .graph-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 10;
+    }
+    
+    .graph-controls button {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .graph-controls button:hover {
+        background: rgba(255,255,255,0.2);
+    }
+    
+    .tooltip {
+        position: absolute;
+        background: rgba(0,0,0,0.9);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        pointer-events: none;
+        z-index: 100;
+        max-width: 300px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    .tooltip h4 {
+        margin: 0 0 8px 0;
+        color: #60a5fa;
+    }
+    
+    .tooltip p {
+        margin: 4px 0;
+    }
+</style>
+{% endblock head %}
+
+{% block header_actions %}
+<div class="filter-controls">
+    <label>Min Strength:</label>
+    <input type="range" id="strength-slider" min="0" max="1" step="0.1" value="0">
+    <span id="strength-value">0.0</span>
+    
+    <select id="focus-brand" class="filter-select">
+        <option value="">All Brands</option>
+        {% for brand in brands %}
+        <option value="{{ brand }}">{{ brand }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock header_actions %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="card full-width">
+        <div class="card-header">
+            <h3>🕸️ Co-Mention Network</h3>
+            <div class="graph-stats">
+                <span class="stat">Nodes: <strong id="node-count">{{ graph.total_nodes }}</strong></span>
+                <span class="stat">Edges: <strong id="edge-count">{{ graph.total_edges }}</strong></span>
+            </div>
+        </div>
+        <div class="card-content">
+            <div id="graph-container">
+                <div class="graph-controls">
+                    <button onclick="resetZoom()">🔄 Reset</button>
+                    <button onclick="toggleLabels()">🏷️ Labels</button>
+                    <button onclick="exportGraph()">📥 Export</button>
+                </div>
+            </div>
+            <div id="tooltip" class="tooltip" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>🔝 Strongest Relationships</h3>
+        </div>
+        <div class="card-content">
+            <table class="data-table" id="relationships-table">
+                <thead>
+                    <tr>
+                        <th>Brands</th>
+                        <th>Strength</th>
+                        <th>Co-mentions</th>
+                        <th>Avg Distance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for edge in graph.edges %}
+                    <tr>
+                        <td>
+                            <span class="brand-pair">
+                                {{ edge.source }} ↔ {{ edge.target }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="strength-bar">
+                                <div class="strength-fill" style="width: {{ edge.weight * 100 }}%"></div>
+                                <span>{{ edge.weight | round(precision=3) }}</span>
+                            </div>
+                        </td>
+                        <td>{{ edge.co_mentions }}</td>
+                        <td>{{ edge.avg_distance }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>📈 Network Metrics</h3>
+        </div>
+        <div class="card-content">
+            <div class="metrics-grid">
+                <div class="metric">
+                    <span class="metric-label">Network Density</span>
+                    <span class="metric-value" id="density">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Connections</span>
+                    <span class="metric-value" id="avg-connections">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Max Connections</span>
+                    <span class="metric-value" id="max-connections">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Isolated Nodes</span>
+                    <span class="metric-value" id="isolated">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+let graphData = {{ graph | json_encode() | safe }};
+let svg, simulation, node, link, labels;
+let showLabels = true;
+let zoom;
+
+// Initialize the graph
+function initGraph() {
+    const container = document.getElementById('graph-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    // Clear existing SVG
+    d3.select('#graph-container svg').remove();
+    
+    svg = d3.select('#graph-container')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+    
+    // Add zoom behavior
+    zoom = d3.zoom()
+        .scaleExtent([0.1, 4])
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+        });
+    
+    svg.call(zoom);
+    
+    const g = svg.append('g');
+    
+    // Create force simulation
+    simulation = d3.forceSimulation(graphData.nodes)
+        .force('link', d3.forceLink(graphData.edges)
+            .id(d => d.id)
+            .distance(d => 150 - d.weight * 50))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(50));
+    
+    // Color scale based on connections
+    const connectionCounts = {};
+    graphData.edges.forEach(e => {
+        connectionCounts[e.source] = (connectionCounts[e.source] || 0) + 1;
+        connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1;
+    });
+    
+    const maxConnections = Math.max(...Object.values(connectionCounts), 1);
+    const colorScale = d3.scaleSequential(d3.interpolateViridis)
+        .domain([0, maxConnections]);
+    
+    // Create links
+    link = g.append('g')
+        .selectAll('line')
+        .data(graphData.edges)
+        .enter()
+        .append('line')
+        .attr('class', 'link')
+        .attr('stroke', '#4a5568')
+        .attr('stroke-width', d => Math.max(1, d.weight * 5))
+        .on('mouseover', showEdgeTooltip)
+        .on('mouseout', hideTooltip);
+    
+    // Create node groups
+    node = g.append('g')
+        .selectAll('.node')
+        .data(graphData.nodes)
+        .enter()
+        .append('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+    
+    // Add circles to nodes
+    node.append('circle')
+        .attr('r', d => Math.max(20, (connectionCounts[d.id] || 1) * 5))
+        .attr('fill', d => colorScale(connectionCounts[d.id] || 0))
+        .on('mouseover', showNodeTooltip)
+        .on('mouseout', hideTooltip)
+        .on('click', focusNode);
+    
+    // Add labels
+    labels = node.append('text')
+        .attr('dy', 4)
+        .attr('text-anchor', 'middle')
+        .text(d => d.label);
+    
+    // Update positions on tick
+    simulation.on('tick', () => {
+        link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+        
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+    
+    // Update metrics
+    updateMetrics(connectionCounts, maxConnections);
+}
+
+function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+}
+
+function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+}
+
+function showNodeTooltip(event, d) {
+    const connections = graphData.edges.filter(
+        e => e.source.id === d.id || e.target.id === d.id
+    );
+    
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = `
+        <h4>${d.label}</h4>
+        <p><strong>Connections:</strong> ${connections.length}</p>
+        <p><strong>Top Competitors:</strong></p>
+        ${connections.slice(0, 3).map(c => {
+            const other = c.source.id === d.id ? c.target.id : c.source.id;
+            return `<p>• ${other} (${c.co_mentions} co-mentions)</p>`;
+        }).join('')}
+    `;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (event.pageX + 10) + 'px';
+    tooltip.style.top = (event.pageY + 10) + 'px';
+}
+
+function showEdgeTooltip(event, d) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = `
+        <h4>${d.source.id || d.source} ↔ ${d.target.id || d.target}</h4>
+        <p><strong>Strength:</strong> ${d.weight.toFixed(3)}</p>
+        <p><strong>Co-mentions:</strong> ${d.co_mentions}</p>
+        <p><strong>Avg Rank Distance:</strong> ${d.avg_distance}</p>
+    `;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (event.pageX + 10) + 'px';
+    tooltip.style.top = (event.pageY + 10) + 'px';
+}
+
+function hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+}
+
+function focusNode(event, d) {
+    // Highlight connected nodes
+    const connected = new Set([d.id]);
+    graphData.edges.forEach(e => {
+        if (e.source.id === d.id) connected.add(e.target.id);
+        if (e.target.id === d.id) connected.add(e.source.id);
+    });
+    
+    node.selectAll('circle')
+        .attr('opacity', n => connected.has(n.id) ? 1 : 0.2);
+    
+    link.attr('opacity', e => 
+        (e.source.id === d.id || e.target.id === d.id) ? 1 : 0.1
+    );
+    
+    // Reset after 3 seconds
+    setTimeout(() => {
+        node.selectAll('circle').attr('opacity', 1);
+        link.attr('opacity', 0.6);
+    }, 3000);
+}
+
+function resetZoom() {
+    svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity
+    );
+}
+
+function toggleLabels() {
+    showLabels = !showLabels;
+    labels.style('display', showLabels ? 'block' : 'none');
+}
+
+function exportGraph() {
+    const blob = new Blob([JSON.stringify(graphData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'competitor_graph.json';
+    a.click();
+}
+
+function updateMetrics(connectionCounts, maxConnections) {
+    const n = graphData.nodes.length;
+    const e = graphData.edges.length;
+    const maxEdges = (n * (n - 1)) / 2;
+    const density = maxEdges > 0 ? (e / maxEdges).toFixed(3) : 0;
+    
+    const connections = Object.values(connectionCounts);
+    const avgConnections = connections.length > 0 
+        ? (connections.reduce((a, b) => a + b, 0) / connections.length).toFixed(1)
+        : 0;
+    
+    const isolated = n - Object.keys(connectionCounts).length;
+    
+    document.getElementById('density').textContent = density;
+    document.getElementById('avg-connections').textContent = avgConnections;
+    document.getElementById('max-connections').textContent = maxConnections;
+    document.getElementById('isolated').textContent = isolated;
+}
+
+// Strength filter
+document.getElementById('strength-slider').addEventListener('input', async function(e) {
+    const strength = parseFloat(e.target.value);
+    document.getElementById('strength-value').textContent = strength.toFixed(1);
+    
+    const response = await fetch(`/api/graph?min_strength=${strength}`);
+    graphData = await response.json();
+    
+    document.getElementById('node-count').textContent = graphData.total_nodes;
+    document.getElementById('edge-count').textContent = graphData.total_edges;
+    
+    initGraph();
+});
+
+// Focus brand filter
+document.getElementById('focus-brand').addEventListener('change', async function(e) {
+    const brand = e.target.value;
+    if (brand) {
+        const response = await fetch(`/api/competitors/${encodeURIComponent(brand)}?top_n=10`);
+        const competitors = await response.json();
+        
+        // Highlight this brand's connections
+        const connected = new Set([brand]);
+        competitors.forEach(c => {
+            connected.add(c.brand_name_1 === brand ? c.brand_name_2 : c.brand_name_1);
+        });
+        
+        node.selectAll('circle')
+            .attr('opacity', n => connected.has(n.id) ? 1 : 0.2);
+        
+        link.attr('opacity', e => 
+            connected.has(e.source.id) && connected.has(e.target.id) ? 1 : 0.1
+        );
+    } else {
+        node.selectAll('circle').attr('opacity', 1);
+        link.attr('opacity', 0.6);
+    }
+});
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', initGraph);
+window.addEventListener('resize', initGraph);
+</script>
+{% endblock scripts %}

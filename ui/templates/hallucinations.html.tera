@@ -1,0 +1,237 @@
+{% extends "base" %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card risk-low">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-content">
+            <h3 id="low-count">0</h3>
+            <p>Low Risk</p>
+        </div>
+    </div>
+    <div class="stat-card risk-medium">
+        <div class="stat-icon">🟡</div>
+        <div class="stat-content">
+            <h3 id="medium-count">0</h3>
+            <p>Medium Risk</p>
+        </div>
+    </div>
+    <div class="stat-card risk-high">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-content">
+            <h3 id="high-count">0</h3>
+            <p>High Risk</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+            <h3 id="avg-reliability">0</h3>
+            <p>Avg Reliability</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>🔬 Hallucination Risk Analysis</h3>
+            <div class="filter-controls">
+                <select id="risk-filter" class="filter-select">
+                    <option value="">All Risks</option>
+                    <option value="high">🔴 High Risk</option>
+                    <option value="medium">🟡 Medium Risk</option>
+                    <option value="low">🟢 Low Risk</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-content">
+            <table class="data-table" id="scores-table">
+                <thead>
+                    <tr>
+                        <th>Brand</th>
+                        <th>Confidence</th>
+                        <th>Reliability</th>
+                        <th>Risk Level</th>
+                        <th>Sources</th>
+                        <th>Accessible</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for score in scores %}
+                    <tr data-risk="{{ score.risk_level }}">
+                        <td><strong>{{ score.brand_name }}</strong></td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ score.confidence_score * 100 }}%"></div>
+                                <span>{{ score.confidence_score | round(precision=2) }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill reliability-{{ score.risk_level }}" 
+                                     style="width: {{ score.reliability_score * 100 }}%"></div>
+                                <span>{{ score.reliability_score | round(precision=2) }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="risk-badge risk-{{ score.risk_level }}">
+                                {% if score.risk_level == "high" %}🔴{% elif score.risk_level == "medium" %}🟡{% else %}🟢{% endif %}
+                                {{ score.risk_level | upper }}
+                            </span>
+                        </td>
+                        <td>{{ score.source_count }}</td>
+                        <td>
+                            {% if score.source_accessible %}
+                                <span class="badge badge-success">✓ Yes</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗ No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if scores | length == 0 %}
+            <div class="empty-state">
+                <p>📭 No hallucination scores found</p>
+                <p class="muted">Run the hallucination analysis to generate risk scores</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>📈 Risk Distribution</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="riskChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>✅ Response Quality Overview</h3>
+    </div>
+    <div class="card-content">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Response ID</th>
+                    <th>Provider</th>
+                    <th>Model</th>
+                    <th>Avg Reliability</th>
+                    <th>Risk Breakdown</th>
+                    <th>Quality</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in quality %}
+                <tr>
+                    <td>#{{ q.response_id }}</td>
+                    <td>
+                        <span class="provider-badge provider-{{ q.provider_name | lower }}">
+                            {{ q.provider_name }}
+                        </span>
+                    </td>
+                    <td>{{ q.model_name }}</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ q.avg_reliability * 100 }}%"></div>
+                            <span>{{ q.avg_reliability | round(precision=2) }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="risk-breakdown-inline">
+                            <span class="risk-count risk-high" title="High Risk">{{ q.high_risk_count }}</span>
+                            <span class="risk-count risk-medium" title="Medium Risk">{{ q.medium_risk_count }}</span>
+                            <span class="risk-count risk-low" title="Low Risk">{{ q.low_risk_count }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="quality-badge quality-{{ q.overall_quality }}">
+                            {{ q.overall_quality | upper }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if quality | length == 0 %}
+        <div class="empty-state">
+            <p>📭 No response quality data found</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+const scores = {{ scores | json_encode() | safe }};
+
+// Calculate stats
+const riskCounts = { high: 0, medium: 0, low: 0 };
+let totalReliability = 0;
+
+scores.forEach(s => {
+    riskCounts[s.risk_level]++;
+    totalReliability += s.reliability_score;
+});
+
+const avgReliability = scores.length > 0 ? (totalReliability / scores.length).toFixed(2) : 0;
+
+// Update stat cards
+document.getElementById('low-count').textContent = riskCounts.low;
+document.getElementById('medium-count').textContent = riskCounts.medium;
+document.getElementById('high-count').textContent = riskCounts.high;
+document.getElementById('avg-reliability').textContent = avgReliability;
+
+// Risk filter
+document.getElementById('risk-filter').addEventListener('change', function(e) {
+    const filter = e.target.value;
+    const rows = document.querySelectorAll('#scores-table tbody tr');
+    
+    rows.forEach(row => {
+        if (!filter || row.dataset.risk === filter) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Risk distribution chart
+new Chart(document.getElementById('riskChart'), {
+    type: 'pie',
+    data: {
+        labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+        datasets: [{
+            data: [riskCounts.low, riskCounts.medium, riskCounts.high],
+            backgroundColor: [
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(234, 179, 8, 0.8)',
+                'rgba(239, 68, 68, 0.8)'
+            ],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock scripts %}
