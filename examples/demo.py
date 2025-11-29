@@ -7,9 +7,10 @@ import asyncio
 import sys
 from pathlib import Path
 
-current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir))
-sys.path.insert(0, str(current_dir / "src"))
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 
 
 def demo_baml_structure():
@@ -33,8 +34,8 @@ def demo_baml_structure():
         print("Sentiment - Enum: Positive, Neutral, Negative")
 
         print("\n3. Provider Integration:")
-        from src.providers.openai_provider import OpenAIProvider
-        from src.providers.ollama_provider import OllamaProvider
+        from providers.openai_provider import OpenAIProvider
+        from providers.ollama_provider import OllamaProvider
 
         openai_provider = OpenAIProvider()
         ollama_provider = OllamaProvider()
@@ -97,7 +98,7 @@ async def simulate_workflow():
         print(f"#{i}: {answer['name']} - {answer['why']}")
 
     print("\nBrand Detection:")
-    from src.run import BRANDS, match_brand
+    from run import BRANDS, match_brand
 
     mentions_found = 0
     for i, answer in enumerate(mock_ranking_result["answers"]):

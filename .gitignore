@@ -24,4 +24,4 @@ uv.lock
 *.db
 
 # BAML Client
-baml_client/
+baml_client/** */
