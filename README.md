@@ -105,8 +105,6 @@ python foundamental.py hallucination --analyze --verify-urls
 python foundamental.py hallucination --report
 ```
 
-See [HALLUCINATION_FILTER.md](HALLUCINATION_FILTER.md) for detailed documentation.
-
 ### Competitor Graph Analysis
 ```bash
 # View competitor co-mention network
@@ -137,7 +135,6 @@ The competitor graph automatically tracks when brands are mentioned together in 
 - The strength of competitive associations based on co-mention frequency and rank proximity
 
 **Export Formats:** JSON, NetworkX, PyTorch Geometric (PyG), Adjacency Matrix (NumPy/CSV)  
-See [Graph Export Formats](docs/graph_export_formats.md) for advanced usage with graph analysis libraries.
 
 ### Export Results
 ```bash
