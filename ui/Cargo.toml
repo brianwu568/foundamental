@@ -1,0 +1,30 @@
+[package]
+name = "foundamental-ui"
+version = "0.1.0"
+edition = "2021"
+description = "LLM Brand Mentions & Competitor Graph UI"
+authors = ["Your Name"]
+
+[dependencies]
+# Web framework
+rocket = { version = "0.5", features = ["json"] }
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Templating
+rocket_dyn_templates = { version = "0.1", features = ["tera"] }
+
+# Date/Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+opt-level = 3
+lto = true
