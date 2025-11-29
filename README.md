@@ -1,4 +1,4 @@
-# Foundamental - Brand Visibility Tracker
+# Foundamental - Brand Visibility Tracker in LLMs
 
 A Python application that helps brands understand their visibility and ranking across different Large Language Models (LLMs). Track how your brand appears in LLM responses compared to competitors.
 
