@@ -12,9 +12,10 @@ import sqlite3
 from pathlib import Path
 from dotenv import load_dotenv
 
-current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir))
-sys.path.insert(0, str(current_dir / "src"))
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 load_dotenv()
 
 
@@ -32,17 +33,17 @@ def test_imports():
         return False
 
     try:
-        from src.providers.openai_provider import OpenAIProvider
-        from src.providers.ollama_provider import OllamaProvider
-        from src.providers.base import LLMProvider
+        from providers.openai_provider import OpenAIProvider
+        from providers.ollama_provider import OllamaProvider
+        from providers.base import LLMProvider
         print("Provider classes imported successfully")
     except ImportError as e:
         print(f"Provider import failed: {e}")
         return False
 
     try:
-        import src.run as run
-        import src.analyze as analyze
+        import run as run_module
+        import analyze as analyze_module
         print("Main modules imported successfully")
     except ImportError as e:
         print(f"Module import failed: {e}")
@@ -94,7 +95,7 @@ async def test_providers():
     """Test provider classes"""
     print("\n Testing provider classes...")
 
-    from src.providers.openai_provider import OpenAIProvider
+    from providers.openai_provider import OpenAIProvider
 
     try:
         print("Testing OpenAIProvider...")
@@ -117,7 +118,7 @@ async def test_providers():
     # Test Ollama provider (may fail if Ollama not running)
     # That is fine for now if you don't have it set up
     try:
-        from src.providers.ollama_provider import OllamaProvider
+        from providers.ollama_provider import OllamaProvider
         print("Testing OllamaProvider...")
         ollama_provider = OllamaProvider(model="llama3")
 
@@ -143,7 +144,7 @@ def test_database_operations():
         test_db = tmp.name
 
     try:
-        from src.run import create_tables, match_brand
+        from run import create_tables, match_brand
         conn = sqlite3.connect(test_db)
         create_tables(conn)
         c = conn.cursor()
@@ -183,7 +184,7 @@ def test_configuration():
     print("\nTesting configuration...")
 
     try:
-        from src.run import load_config
+        from run import load_config
 
         config = load_config("nonexistent_config.json")
 
@@ -211,7 +212,7 @@ async def run_integration_test():
     print("\n Running integration test...")
 
     try:
-        from src.run import BRANDS, QUERIES, PROVIDERS
+        from run import BRANDS, QUERIES, PROVIDERS
         import tempfile
         import sqlite3
         import json
@@ -222,7 +223,7 @@ async def run_integration_test():
 
         conn = sqlite3.connect(test_db)
         c = conn.cursor()
-        from src.run import create_tables, match_brand
+        from run import create_tables, match_brand
         create_tables(conn)
 
         provider = PROVIDERS[0]  # OpenAI provider
