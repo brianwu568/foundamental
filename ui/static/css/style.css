@@ -280,6 +280,35 @@ a:hover {
     color: var(--text-secondary);
 }
 
+/* Compact table variant */
+.data-table-compact th,
+.data-table-compact td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+}
+
+.data-table-compact th {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.data-table-compact td {
+    text-align: center;
+}
+
+.data-table-compact td:first-child {
+    text-align: left;
+}
+
+.data-table-compact .progress-bar {
+    min-width: 60px;
+    height: 20px;
+}
+
+.data-table-compact .progress-bar span {
+    font-size: 0.7rem;
+}
+
 /* =====================
    Badges
    ===================== */
