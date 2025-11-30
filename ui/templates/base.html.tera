@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Foundamental LLM SEO</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    {% block head %}{% endblock head %}
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h1>🔍 Foundamental</h1>
+            <span class="subtitle">LLM SEO Analytics</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/" class="{% if title == 'Dashboard' %}active{% endif %}">
+                <span class="icon">📊</span> Dashboard
+            </a></li>
+            <li><a href="/brands" class="{% if title == 'Brand Rankings' %}active{% endif %}">
+                <span class="icon">🏷️</span> Brand Rankings
+            </a></li>
+            <li><a href="/competitors" class="{% if title == 'Competitor Graph' %}active{% endif %}">
+                <span class="icon">🕸️</span> Competitor Graph
+            </a></li>
+            <li><a href="/hallucinations" class="{% if title == 'Hallucination Filter' %}active{% endif %}">
+                <span class="icon">🔬</span> Hallucination Filter
+            </a></li>
+            <li><a href="/providers" class="{% if title == 'Provider Performance' %}active{% endif %}">
+                <span class="icon">⚡</span> Provider Performance
+            </a></li>
+        </ul>
+        <div class="nav-footer">
+            <p>Database: llmseo.db</p>
+        </div>
+    </nav>
+    
+    <main class="content">
+        <header class="page-header">
+            <h2>{{ title }}</h2>
+            <div class="header-actions">
+                {% block header_actions %}{% endblock header_actions %}
+            </div>
+        </header>
+        
+        <div class="page-content">
+            {% block content %}{% endblock content %}
+        </div>
+    </main>
+    
+    <script src="/static/js/app.js"></script>
+    {% block scripts %}{% endblock scripts %}
+</body>
+</html>

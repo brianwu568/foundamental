@@ -1,0 +1,208 @@
+{% extends "base" %}
+
+{% block header_actions %}
+<div class="filter-controls">
+    <select id="brand-filter" class="filter-select">
+        <option value="">All Brands</option>
+        {% for brand in brands %}
+        <option value="{{ brand }}">{{ brand }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock header_actions %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>🏷️ Brand Rankings Across LLM Providers</h3>
+        <div class="card-actions">
+            <button class="btn btn-secondary" onclick="exportToCSV()">📥 Export CSV</button>
+        </div>
+    </div>
+    <div class="card-content">
+        <table class="data-table sortable" id="rankings-table">
+            <thead>
+                <tr>
+                    <th data-sort="brand">Brand</th>
+                    <th data-sort="alias">Alias Used</th>
+                    <th data-sort="provider">Provider</th>
+                    <th data-sort="model">Model</th>
+                    <th data-sort="query">Query</th>
+                    <th data-sort="rank">Rank</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ranking in rankings %}
+                <tr data-brand="{{ ranking.brand_name }}">
+                    <td><strong>{{ ranking.brand_name }}</strong></td>
+                    <td>{{ ranking.alias_used }}</td>
+                    <td>
+                        <span class="provider-badge provider-{{ ranking.provider | lower }}">
+                            {{ ranking.provider }}
+                        </span>
+                    </td>
+                    <td>{{ ranking.model }}</td>
+                    <td class="query-cell">{{ ranking.query }}</td>
+                    <td>
+                        <span class="rank-badge {% if ranking.rank <= 3 %}rank-top{% elif ranking.rank <= 5 %}rank-mid{% else %}rank-low{% endif %}">
+                            #{{ ranking.rank }}
+                        </span>
+                    </td>
+                    <td class="explanation-cell">
+                        {% if ranking.explanation %}
+                            <span class="explanation-preview" title="{{ ranking.explanation }}">
+                                {{ ranking.explanation | truncate(length=60) }}
+                            </span>
+                        {% else %}
+                            <span class="muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if rankings | length == 0 %}
+        <div class="empty-state">
+            <p>📭 No brand rankings found</p>
+            <p class="muted">Run the LLM SEO analysis to generate brand mention data</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>📊 Rankings Distribution</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="rankingsChart" height="300"></canvas>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>🎯 Brand Visibility by Provider</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="visibilityChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+const rankings = {{ rankings | json_encode() | safe }};
+
+// Brand filter functionality
+document.getElementById('brand-filter').addEventListener('change', function(e) {
+    const filter = e.target.value;
+    const rows = document.querySelectorAll('#rankings-table tbody tr');
+    
+    rows.forEach(row => {
+        if (!filter || row.dataset.brand === filter) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Rankings distribution chart
+const rankCounts = {};
+rankings.forEach(r => {
+    rankCounts[r.rank] = (rankCounts[r.rank] || 0) + 1;
+});
+
+const rankLabels = Object.keys(rankCounts).sort((a, b) => a - b);
+const rankData = rankLabels.map(k => rankCounts[k]);
+
+new Chart(document.getElementById('rankingsChart'), {
+    type: 'bar',
+    data: {
+        labels: rankLabels.map(r => `#${r}`),
+        datasets: [{
+            label: 'Mentions',
+            data: rankData,
+            backgroundColor: rankLabels.map(r => {
+                if (r <= 3) return 'rgba(34, 197, 94, 0.8)';
+                if (r <= 5) return 'rgba(234, 179, 8, 0.8)';
+                return 'rgba(239, 68, 68, 0.8)';
+            }),
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+// Visibility by provider chart
+const providerData = {};
+rankings.forEach(r => {
+    const key = r.provider;
+    if (!providerData[key]) {
+        providerData[key] = { brands: new Set(), mentions: 0 };
+    }
+    providerData[key].brands.add(r.brand_name);
+    providerData[key].mentions++;
+});
+
+const providerLabels = Object.keys(providerData);
+const providerMentions = providerLabels.map(p => providerData[p].mentions);
+
+new Chart(document.getElementById('visibilityChart'), {
+    type: 'doughnut',
+    data: {
+        labels: providerLabels,
+        datasets: [{
+            data: providerMentions,
+            backgroundColor: [
+                'rgba(99, 102, 241, 0.8)',
+                'rgba(236, 72, 153, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(234, 179, 8, 0.8)',
+                'rgba(239, 68, 68, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+});
+
+// Export to CSV
+function exportToCSV() {
+    const headers = ['Brand', 'Alias', 'Provider', 'Model', 'Query', 'Rank', 'Explanation'];
+    const rows = rankings.map(r => [
+        r.brand_name, r.alias_used, r.provider, r.model, r.query, r.rank, r.explanation || ''
+    ]);
+    
+    let csv = headers.join(',') + '\n';
+    rows.forEach(row => {
+        csv += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'brand_rankings.csv';
+    a.click();
+}
+</script>
+{% endblock scripts %}

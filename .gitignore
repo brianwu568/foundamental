@@ -25,3 +25,6 @@ uv.lock
 
 # BAML Client
 baml_client/** */
+
+# Rust build output directory
+ui/target/
