@@ -217,3 +217,65 @@ To migrate from regex to LLM matching:
 4. Monitor API costs (should be minimal)
 
 The system maintains backward compatibility - set `USE_LLM_MATCHING=false` to use regex.
+
+## UI Integration
+
+The LLM-as-a-Judge system is fully integrated with the web UI dashboard.
+
+### Dashboard Features
+
+The main dashboard (`/`) displays:
+- **LLM vs Regex Match Counts**: Shows how many brand matches used LLM vs regex
+- **Average Match Confidence**: Overall confidence score for LLM-matched brands
+- **Match Method Column**: Each mention shows whether it was matched via 🤖 LLM or 📝 Regex
+- **Confidence Scores**: Hover over LLM matches to see the reasoning
+
+### Database Schema
+
+The `mentions` table includes LLM evaluation metadata:
+
+```sql
+CREATE TABLE mentions (
+    ...
+    match_method TEXT DEFAULT 'regex',    -- 'llm' or 'regex'
+    match_confidence REAL,                 -- 0.0 to 1.0
+    match_reasoning TEXT                   -- LLM's explanation
+);
+```
+
+Evaluation statistics are tracked per run:
+
+```sql
+CREATE TABLE evaluation_stats (
+    id INTEGER PRIMARY KEY,
+    run_id INTEGER,
+    eval_method TEXT,
+    total_evaluations INTEGER,
+    avg_confidence REAL,
+    high_confidence_count INTEGER,
+    low_confidence_count INTEGER,
+    fallback_count INTEGER,
+    timestamp REAL
+);
+```
+
+### API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/stats` | Dashboard stats including LLM/regex counts |
+| `GET /api/mentions` | Mentions with match_method, confidence, reasoning |
+| `GET /api/evaluation-stats` | Historical LLM evaluation statistics |
+| `GET /api/confidence-distribution` | Confidence score distribution |
+
+### Running with LLM Matching
+
+```bash
+# Enable LLM matching and run analysis
+USE_LLM_MATCHING=true python src/run.py
+
+# Start the UI to view results
+cd ui && cargo run
+```
+
+Open http://localhost:8000 to view the dashboard with LLM evaluation insights.
