@@ -223,6 +223,6 @@ baml-cli generate
 ## Roadmap
 - [x] Hallucination Filter: Ask models to output URLs/sources and score confidence
 - [x] Competitor graph (co-mention network over time)
-- [ ] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
+- [x] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
 - [ ] Attribution tests
 - [x] Simple UI
