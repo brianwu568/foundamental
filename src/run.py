@@ -9,6 +9,24 @@ from pathlib import Path
 from providers.openai_provider import OpenAIProvider
 from providers.ollama_provider import OllamaProvider
 
+# LLM Evaluator for semantic brand matching
+USE_LLM_MATCHING = os.getenv("USE_LLM_MATCHING", "false").lower() == "true"
+_llm_evaluator = None
+
+
+def get_llm_evaluator():
+    """Lazy initialization of LLM evaluator"""
+    global _llm_evaluator
+    if _llm_evaluator is None:
+        from llm_evaluator import LLMEvaluator, EvaluationConfig, EvaluatorBackend
+        backend = EvaluatorBackend.OPENAI if os.getenv("LLM_EVAL_BACKEND", "openai") == "openai" else EvaluatorBackend.OLLAMA
+        _llm_evaluator = LLMEvaluator(EvaluationConfig(
+            backend=backend,
+            confidence_threshold=float(os.getenv("LLM_EVAL_THRESHOLD", "0.7")),
+            fallback_to_regex=True
+        ))
+    return _llm_evaluator
+
 
 def load_config(config_path="config.json"):
     """Load configuration from JSON file"""
@@ -40,12 +58,39 @@ PROVIDERS = [
 
 
 def match_brand(name: str, brand):
+    """
+    Simple exact-match brand matching (regex-based).
+    For semantic matching, use match_brand_llm instead.
+    """
     target = name.lower()
     if brand["name"].lower() == target:
         return brand["name"]
     for alias in brand["aliases"]:
         if alias.lower() == target:
             return alias
+    return None
+
+
+async def match_brand_llm(name: str, brand):
+    """
+    LLM-powered semantic brand matching.
+    Uses cheap models (GPT-4o-mini or Ollama) to evaluate matches.
+    
+    Can recognize:
+    - Partial mentions ("OpenAI's GPT-4" -> OpenAI)
+    - Misspellings 
+    - Contextual references
+    - Abbreviations
+    """
+    evaluator = get_llm_evaluator()
+    result = await evaluator.match_brand(
+        text=name,
+        brand_name=brand["name"],
+        brand_aliases=brand.get("aliases", [])
+    )
+    
+    if result.is_match and result.confidence >= evaluator.config.confidence_threshold:
+        return result.matched_alias or brand["name"]
     return None
 
 
@@ -129,7 +174,12 @@ async def main():
                     answer_why = a.get("why", "")
 
                     for brand in BRANDS:
-                        alias = match_brand(answer_name, brand)
+                        # Use LLM matching if enabled, otherwise regex
+                        if USE_LLM_MATCHING:
+                            alias = await match_brand_llm(answer_name, brand)
+                        else:
+                            alias = match_brand(answer_name, brand)
+                        
                         if alias:
                             mentions_found += 1
                             c.execute('''INSERT INTO mentions 
