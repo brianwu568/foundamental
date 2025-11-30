@@ -3,7 +3,7 @@
 LLM-as-a-Judge Evaluation Tests
 
 Tests the LLM evaluator against various edge cases that regex cannot handle.
-Uses cheap models (GPT-4o-mini ~$0.15/1M tokens or free Ollama).
+Uses cheap models (GPT-5 nano or free Ollama).
 """
 import asyncio
 import sys
@@ -363,7 +363,7 @@ async def main():
     """Run all LLM evaluator tests"""
     print("\n" + "=" * 60)
     print("LLM-as-a-Judge Evaluation Test Suite")
-    print("Uses GPT-4o-mini for cheap, fast evaluation")
+    print("Uses GPT-5 nano for cheap, fast evaluation")
     print("=" * 60)
     
     all_passed = True

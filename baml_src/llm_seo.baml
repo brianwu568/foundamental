@@ -38,7 +38,7 @@ class SentimentResult {
 }
 
 function RankEntities(query: string, k: int) -> RankingResult {
-  client "openai/gpt-4o-mini"
+  client "openai/gpt-5-nano-2025-08-07"
 
   prompt #"
     You are a rankings engine. Given a user query, return the top-K entities
@@ -83,7 +83,7 @@ function RankEntitiesOllama(query: string, k: int) -> RankingResult {
 }
 
 function BrandSentiment(brand: string, passage: string) -> SentimentResult {
-  client "openai/gpt-4o-mini"
+  client "openai/gpt-5-nano-2025-08-07"
 
   prompt #"
     Classify sentiment toward the brand in the passage.

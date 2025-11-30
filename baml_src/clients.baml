@@ -3,7 +3,7 @@
 client<llm> CustomGPT4o {
   provider openai
   options {
-    model "gpt-4o"
+    model "gpt-5-nano-2025-08-07"
     api_key env.OPENAI_API_KEY
   }
 }
@@ -12,7 +12,7 @@ client<llm> CustomGPT4oMini {
   provider openai
   retry_policy Exponential
   options {
-    model "gpt-4o-mini"
+    model "gpt-5-nano-2025-08-07"
     api_key env.OPENAI_API_KEY
   }
 }
@@ -22,7 +22,7 @@ client<llm> GPTNano {
   provider openai
   retry_policy Exponential
   options {
-    model "gpt-5.1-nano"
+    model "gpt-5-nano-2025-08-07"
     api_key env.OPENAI_API_KEY
   }
 }

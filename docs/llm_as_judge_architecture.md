@@ -37,12 +37,12 @@ Use a small, cheap LLM to semantically evaluate matches. The LLM understands:
 
 | Model | Cost per 1M tokens | Use Case |
 |-------|-------------------|----------|
-| GPT-4o-mini | ~$0.15 input / $0.60 output | Default evaluator |
+| GPT-5 nano | Very cheap | Default evaluator |
 | GPT-3.5-turbo | ~$0.50 input / $1.50 output | Fallback |
 | Ollama (local) | Free | Local development |
 
 For typical evaluation workloads (100 evals/run, ~200 tokens each):
-- **GPT-4o-mini**: ~$0.002 per run
+- **GPT-5 nano**: Very cheap per run
 - **Ollama**: Free (but requires local setup)
 
 ## Architecture
@@ -66,8 +66,8 @@ For typical evaluation workloads (100 evals/run, ~200 tokens each):
 │         ┌──────────────────┼──────────────────┐            │
 │         │                  │                  │            │
 │  ┌──────┴──────┐   ┌──────┴──────┐   ┌──────┴──────┐      │
-│  │GPT-5.1-nano │   │    Ollama   │   │  GPT Nano   │      │
-│  │   (OpenAI)  │   │   (Local)   │   │  (Future)   │      │
+│  │  GPT-5 nano │   │    Ollama   │   │   (Other)   │      │
+│  │   (OpenAI)  │   │   (Local)   │   │             │      │
 │  └─────────────┘   └─────────────┘   └─────────────┘      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘

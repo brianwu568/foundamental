@@ -30,6 +30,36 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="BrandSentiment", llm_response=llm_response, mode="request")
         return typing.cast(types.SentimentResult, result)
 
+    def EvalBrandMatch(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatch", llm_response=llm_response, mode="request")
+        return typing.cast(types.BrandMatchResult, result)
+
+    def EvalBrandMatchBatch(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchBatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatchBatch", llm_response=llm_response, mode="request")
+        return typing.cast(types.BrandMatchBatchResult, result)
+
+    def EvalBrandMatchOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatchOllama", llm_response=llm_response, mode="request")
+        return typing.cast(types.BrandMatchResult, result)
+
+    def EvalOutput(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.EvalResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalOutput", llm_response=llm_response, mode="request")
+        return typing.cast(types.EvalResult, result)
+
+    def EvalOutputOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.EvalResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalOutputOllama", llm_response=llm_response, mode="request")
+        return typing.cast(types.EvalResult, result)
+
     def ExtractResume(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> types.Resume:
@@ -54,6 +84,18 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesOpenAI", llm_response=llm_response, mode="request")
         return typing.cast(types.RankingResult, result)
 
+    def RankEntitiesWithSourcesOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.RankingResultWithSources:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesWithSourcesOllama", llm_response=llm_response, mode="request")
+        return typing.cast(types.RankingResultWithSources, result)
+
+    def RankEntitiesWithSourcesOpenAI(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.RankingResultWithSources:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesWithSourcesOpenAI", llm_response=llm_response, mode="request")
+        return typing.cast(types.RankingResultWithSources, result)
+
     
 
 class LlmStreamParser:
@@ -67,6 +109,36 @@ class LlmStreamParser:
     ) -> stream_types.SentimentResult:
         result = self.__options.merge_options(baml_options).parse_response(function_name="BrandSentiment", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.SentimentResult, result)
+
+    def EvalBrandMatch(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.BrandMatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatch", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.BrandMatchResult, result)
+
+    def EvalBrandMatchBatch(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.BrandMatchBatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatchBatch", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.BrandMatchBatchResult, result)
+
+    def EvalBrandMatchOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.BrandMatchResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalBrandMatchOllama", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.BrandMatchResult, result)
+
+    def EvalOutput(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.EvalResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalOutput", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.EvalResult, result)
+
+    def EvalOutputOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.EvalResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="EvalOutputOllama", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.EvalResult, result)
 
     def ExtractResume(
         self, llm_response: str, baml_options: BamlCallOptions = {},
@@ -91,5 +163,17 @@ class LlmStreamParser:
     ) -> stream_types.RankingResult:
         result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesOpenAI", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.RankingResult, result)
+
+    def RankEntitiesWithSourcesOllama(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.RankingResultWithSources:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesWithSourcesOllama", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.RankingResultWithSources, result)
+
+    def RankEntitiesWithSourcesOpenAI(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.RankingResultWithSources:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="RankEntitiesWithSourcesOpenAI", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.RankingResultWithSources, result)
 
     

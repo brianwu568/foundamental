@@ -11,7 +11,7 @@ class OpenAIProviderWithSources(LLMProvider):
     """OpenAI provider that requests sources and confidence scores"""
     name = "openai"
 
-    def __init__(self, model="gpt-4o-mini"):
+    def __init__(self, model="gpt-5-nano-2025-08-07"):
         self.model = model
 
         # Ensure API key is available

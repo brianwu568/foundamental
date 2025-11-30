@@ -2,7 +2,7 @@
 LLM-as-a-Judge Evaluator
 
 Replaces regex-based evaluation with LLM-powered semantic evaluation.
-Uses cheap models (GPT-4o-mini or Ollama) to evaluate brand mentions,
+Uses cheap models (GPT-5 nano or Ollama) to evaluate brand mentions,
 output quality, and other test criteria.
 """
 import asyncio
@@ -22,7 +22,7 @@ from baml_client.types import BrandMatchResult, EvalResult, BrandMatchBatchResul
 
 class EvaluatorBackend(Enum):
     """Available backends for LLM evaluation"""
-    OPENAI = "openai"  # GPT-4o-mini - cheap and fast
+    OPENAI = "openai"  # GPT-5 nano - cheap and fast
     OLLAMA = "ollama"  # Free local model
 
 
@@ -40,7 +40,7 @@ class LLMEvaluator:
     LLM-as-a-Judge evaluator for semantic evaluation tasks.
     
     Replaces brittle regex patterns with LLM-powered understanding.
-    Uses cheap models (GPT-4o-mini ~$0.15/1M tokens or free Ollama).
+    Uses cheap models (GPT-5 nano or free Ollama).
     """
     
     def __init__(self, config: Optional[EvaluationConfig] = None):

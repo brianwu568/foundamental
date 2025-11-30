@@ -100,7 +100,7 @@ async def test_providers():
 
     try:
         print("Testing OpenAIProvider...")
-        openai_provider = OpenAIProvider(model="gpt-4o-mini")
+        openai_provider = OpenAIProvider(model="gpt-5-nano-2025-08-07")
 
         result = await openai_provider.rank("Best testing frameworks", 2)
 

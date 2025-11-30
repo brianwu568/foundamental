@@ -52,7 +52,7 @@ BRANDS = config["brands"]
 QUERIES = config["queries"]
 
 PROVIDERS = [
-    OpenAIProvider(model="gpt-4o-mini"),
+    OpenAIProvider(model="gpt-5-nano-2025-08-07"),
     OllamaProvider(model="llama3"),
 ]
 
@@ -74,10 +74,10 @@ def match_brand(name: str, brand):
 async def match_brand_llm(name: str, brand):
     """
     LLM-powered semantic brand matching.
-    Uses cheap models (GPT-4o-mini or Ollama) to evaluate matches.
+    Uses cheap models (GPT-5 nano or Ollama) to evaluate matches.
     
     Can recognize:
-    - Partial mentions ("OpenAI's GPT-4" -> OpenAI)
+    - Partial mentions ("OpenAI's latest model" -> OpenAI)
     - Misspellings 
     - Contextual references
     - Abbreviations
