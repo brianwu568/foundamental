@@ -225,4 +225,4 @@ baml-cli generate
 - [x] Competitor graph (co-mention network over time)
 - [ ] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
 - [ ] Attribution tests
-- [ ] Simple UI
+- [x] Simple UI
