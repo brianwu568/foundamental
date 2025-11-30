@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 LLM SEO Test Suite
-Tests all components of the LLM SEO application to ensure BAML integration is working
+Tests all components of the LLM SEO application to ensure BAML integration is working.
+Includes LLM-as-a-Judge evaluation for semantic matching.
 """
 # Import required packages
 import asyncio
@@ -99,7 +100,7 @@ async def test_providers():
 
     try:
         print("Testing OpenAIProvider...")
-        openai_provider = OpenAIProvider(model="gpt-4o-mini")
+        openai_provider = OpenAIProvider(model="gpt-5-nano-2025-08-07")
 
         result = await openai_provider.rank("Best testing frameworks", 2)
 
@@ -177,6 +178,96 @@ def test_database_operations():
             os.unlink(test_db)
 
     return True
+
+
+async def test_llm_evaluator():
+    """Test LLM-as-a-Judge evaluation"""
+    print("\n Testing LLM-as-a-Judge Evaluator...")
+    
+    try:
+        from llm_evaluator import LLMEvaluator, EvaluationConfig, EvaluatorBackend
+        
+        # Initialize evaluator with OpenAI (cheap and fast)
+        evaluator = LLMEvaluator(EvaluationConfig(
+            backend=EvaluatorBackend.OPENAI,
+            confidence_threshold=0.7,
+            fallback_to_regex=True
+        ))
+        
+        # Test cases that would fail with simple regex
+        test_cases = [
+            {
+                "text": "OpenAI",
+                "brand": "OpenAI",
+                "aliases": [],
+                "expected": True,
+                "description": "Exact match"
+            },
+            {
+                "text": "OpenAI's latest GPT-4 model",
+                "brand": "OpenAI",
+                "aliases": ["GPT"],
+                "expected": True,
+                "description": "Partial match with possessive"
+            },
+            {
+                "text": "The makers of ChatGPT announced...",
+                "brand": "OpenAI",
+                "aliases": ["ChatGPT", "GPT"],
+                "expected": True,
+                "description": "Alias match"
+            },
+            {
+                "text": "Microsoft Azure cloud platform",
+                "brand": "OpenAI",
+                "aliases": ["ChatGPT"],
+                "expected": False,
+                "description": "No match - different company"
+            },
+        ]
+        
+        passed = 0
+        failed = 0
+        
+        for test in test_cases:
+            result = await evaluator.match_brand(
+                test["text"],
+                test["brand"],
+                test["aliases"]
+            )
+            
+            # Consider it a match if confidence is above threshold
+            is_match = result.is_match and result.confidence >= 0.7
+            
+            if is_match == test["expected"]:
+                passed += 1
+                status = "✓"
+            else:
+                failed += 1
+                status = "✗"
+            
+            print(f"   {status} {test['description']}: "
+                  f"match={result.is_match}, confidence={result.confidence:.2f}")
+        
+        print(f"\n   LLM Evaluator: {passed}/{len(test_cases)} tests passed")
+        
+        # Test output evaluation
+        print("\n   Testing output evaluation...")
+        eval_result = await evaluator.evaluate_output(
+            expected="OpenAI is a leading AI company",
+            actual="OpenAI is one of the top artificial intelligence research organizations",
+            criteria="factual accuracy and semantic similarity"
+        )
+        
+        print(f"   Output evaluation: passed={eval_result.passed}, score={eval_result.score:.2f}")
+        
+        return failed == 0
+        
+    except Exception as e:
+        print(f"   LLM Evaluator test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 def test_configuration():
@@ -285,6 +376,7 @@ async def main():
         ("BAML Functions", test_baml_functions, True),
         ("Provider Classes", test_providers, True),
         ("Database Operations", test_database_operations, False),
+        ("LLM Evaluator", test_llm_evaluator, True),
         ("Configuration", test_configuration, False),
         ("Integration Test", run_integration_test, True),
     ]

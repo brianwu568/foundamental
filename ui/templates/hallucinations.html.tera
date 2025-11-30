@@ -46,15 +46,15 @@
             </div>
         </div>
         <div class="card-content">
-            <table class="data-table" id="scores-table">
+            <table class="data-table data-table-compact" id="scores-table">
                 <thead>
                     <tr>
                         <th>Brand</th>
-                        <th>Confidence</th>
-                        <th>Reliability</th>
-                        <th>Risk Level</th>
-                        <th>Sources</th>
-                        <th>Accessible</th>
+                        <th>Conf.</th>
+                        <th>Rel.</th>
+                        <th>Risk</th>
+                        <th>#</th>
+                        <th>✓</th>
                     </tr>
                 </thead>
                 <tbody>

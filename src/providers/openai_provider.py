@@ -10,7 +10,7 @@ load_dotenv()
 class OpenAIProvider(LLMProvider):
     name = "openai"
 
-    def __init__(self, model="gpt-4o-mini"):
+    def __init__(self, model="gpt-5-nano-2025-08-07"):
         self.model = model
 
         # Ensure API key is available

@@ -94,6 +94,81 @@ class BamlAsyncClient:
                 "brand": brand,"passage": passage,
             })
             return typing.cast(types.SentimentResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def EvalBrandMatch(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvalBrandMatch(text=text,brand_name=brand_name,brand_aliases=brand_aliases,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvalBrandMatch", args={
+                "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+            })
+            return typing.cast(types.BrandMatchResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def EvalBrandMatchBatch(self, text: str,brands: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchBatchResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvalBrandMatchBatch(text=text,brands=brands,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvalBrandMatchBatch", args={
+                "text": text,"brands": brands,
+            })
+            return typing.cast(types.BrandMatchBatchResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def EvalBrandMatchOllama(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> types.BrandMatchResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvalBrandMatchOllama(text=text,brand_name=brand_name,brand_aliases=brand_aliases,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvalBrandMatchOllama", args={
+                "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+            })
+            return typing.cast(types.BrandMatchResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def EvalOutput(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.EvalResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvalOutput(expected=expected,actual=actual,criteria=criteria,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvalOutput", args={
+                "expected": expected,"actual": actual,"criteria": criteria,
+            })
+            return typing.cast(types.EvalResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def EvalOutputOllama(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.EvalResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvalOutputOllama(expected=expected,actual=actual,criteria=criteria,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvalOutputOllama", args={
+                "expected": expected,"actual": actual,"criteria": criteria,
+            })
+            return typing.cast(types.EvalResult, result.cast_to(types, types, stream_types, False, __runtime__))
     async def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> types.Resume:
@@ -154,6 +229,36 @@ class BamlAsyncClient:
                 "query": query,"k": k,
             })
             return typing.cast(types.RankingResult, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def RankEntitiesWithSourcesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RankingResultWithSources:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.RankEntitiesWithSourcesOllama(query=query,k=k,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="RankEntitiesWithSourcesOllama", args={
+                "query": query,"k": k,
+            })
+            return typing.cast(types.RankingResultWithSources, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def RankEntitiesWithSourcesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> types.RankingResultWithSources:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.RankEntitiesWithSourcesOpenAI(query=query,k=k,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="RankEntitiesWithSourcesOpenAI", args={
+                "query": query,"k": k,
+            })
+            return typing.cast(types.RankingResultWithSources, result.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -173,6 +278,66 @@ class BamlStreamClient:
           result,
           lambda x: typing.cast(stream_types.SentimentResult, x.cast_to(types, types, stream_types, True, __runtime__)),
           lambda x: typing.cast(types.SentimentResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def EvalBrandMatch(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.BrandMatchResult, types.BrandMatchResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="EvalBrandMatch", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        })
+        return baml_py.BamlStream[stream_types.BrandMatchResult, types.BrandMatchResult](
+          result,
+          lambda x: typing.cast(stream_types.BrandMatchResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.BrandMatchResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def EvalBrandMatchBatch(self, text: str,brands: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.BrandMatchBatchResult, types.BrandMatchBatchResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="EvalBrandMatchBatch", args={
+            "text": text,"brands": brands,
+        })
+        return baml_py.BamlStream[stream_types.BrandMatchBatchResult, types.BrandMatchBatchResult](
+          result,
+          lambda x: typing.cast(stream_types.BrandMatchBatchResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.BrandMatchBatchResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def EvalBrandMatchOllama(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.BrandMatchResult, types.BrandMatchResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="EvalBrandMatchOllama", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        })
+        return baml_py.BamlStream[stream_types.BrandMatchResult, types.BrandMatchResult](
+          result,
+          lambda x: typing.cast(stream_types.BrandMatchResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.BrandMatchResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def EvalOutput(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.EvalResult, types.EvalResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="EvalOutput", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
+        })
+        return baml_py.BamlStream[stream_types.EvalResult, types.EvalResult](
+          result,
+          lambda x: typing.cast(stream_types.EvalResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.EvalResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def EvalOutputOllama(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.EvalResult, types.EvalResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="EvalOutputOllama", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
+        })
+        return baml_py.BamlStream[stream_types.EvalResult, types.EvalResult](
+          result,
+          lambda x: typing.cast(stream_types.EvalResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.EvalResult, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
     def ExtractResume(self, resume: str,
@@ -223,6 +388,30 @@ class BamlStreamClient:
           lambda x: typing.cast(types.RankingResult, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def RankEntitiesWithSourcesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.RankingResultWithSources, types.RankingResultWithSources]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="RankEntitiesWithSourcesOllama", args={
+            "query": query,"k": k,
+        })
+        return baml_py.BamlStream[stream_types.RankingResultWithSources, types.RankingResultWithSources](
+          result,
+          lambda x: typing.cast(stream_types.RankingResultWithSources, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.RankingResultWithSources, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
+    def RankEntitiesWithSourcesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.RankingResultWithSources, types.RankingResultWithSources]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="RankEntitiesWithSourcesOpenAI", args={
+            "query": query,"k": k,
+        })
+        return baml_py.BamlStream[stream_types.RankingResultWithSources, types.RankingResultWithSources](
+          result,
+          lambda x: typing.cast(stream_types.RankingResultWithSources, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.RankingResultWithSources, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     
 
 class BamlHttpRequestClient:
@@ -236,6 +425,41 @@ class BamlHttpRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="BrandSentiment", args={
             "brand": brand,"passage": passage,
+        }, mode="request")
+        return result
+    async def EvalBrandMatch(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatch", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        }, mode="request")
+        return result
+    async def EvalBrandMatchBatch(self, text: str,brands: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatchBatch", args={
+            "text": text,"brands": brands,
+        }, mode="request")
+        return result
+    async def EvalBrandMatchOllama(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatchOllama", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        }, mode="request")
+        return result
+    async def EvalOutput(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalOutput", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
+        }, mode="request")
+        return result
+    async def EvalOutputOllama(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalOutputOllama", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
         }, mode="request")
         return result
     async def ExtractResume(self, resume: str,
@@ -263,6 +487,20 @@ class BamlHttpRequestClient:
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesOpenAI", args={
+            "query": query,"k": k,
+        }, mode="request")
+        return result
+    async def RankEntitiesWithSourcesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesWithSourcesOllama", args={
+            "query": query,"k": k,
+        }, mode="request")
+        return result
+    async def RankEntitiesWithSourcesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesWithSourcesOpenAI", args={
             "query": query,"k": k,
         }, mode="request")
         return result
@@ -281,6 +519,41 @@ class BamlHttpStreamRequestClient:
             "brand": brand,"passage": passage,
         }, mode="stream")
         return result
+    async def EvalBrandMatch(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatch", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        }, mode="stream")
+        return result
+    async def EvalBrandMatchBatch(self, text: str,brands: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatchBatch", args={
+            "text": text,"brands": brands,
+        }, mode="stream")
+        return result
+    async def EvalBrandMatchOllama(self, text: str,brand_name: str,brand_aliases: typing.List[str],
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalBrandMatchOllama", args={
+            "text": text,"brand_name": brand_name,"brand_aliases": brand_aliases,
+        }, mode="stream")
+        return result
+    async def EvalOutput(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalOutput", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
+        }, mode="stream")
+        return result
+    async def EvalOutputOllama(self, expected: str,actual: str,criteria: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="EvalOutputOllama", args={
+            "expected": expected,"actual": actual,"criteria": criteria,
+        }, mode="stream")
+        return result
     async def ExtractResume(self, resume: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -306,6 +579,20 @@ class BamlHttpStreamRequestClient:
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesOpenAI", args={
+            "query": query,"k": k,
+        }, mode="stream")
+        return result
+    async def RankEntitiesWithSourcesOllama(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesWithSourcesOllama", args={
+            "query": query,"k": k,
+        }, mode="stream")
+        return result
+    async def RankEntitiesWithSourcesOpenAI(self, query: str,k: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="RankEntitiesWithSourcesOpenAI", args={
             "query": query,"k": k,
         }, mode="stream")
         return result

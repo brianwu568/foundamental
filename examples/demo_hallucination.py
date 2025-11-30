@@ -43,7 +43,7 @@ async def demo():
     
     # Initialize provider with source support
     try:
-        provider = OpenAIProviderWithSources(model="gpt-4o-mini")
+        provider = OpenAIProviderWithSources(model="gpt-5-nano-2025-08-07")
     except ValueError as e:
         print(f"❌ Error: {e}")
         print("\nPlease set OPENAI_API_KEY in your environment:")

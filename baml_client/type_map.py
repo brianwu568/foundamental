@@ -19,14 +19,35 @@ type_map = {
     "types.Answer": types.Answer,
     "stream_types.Answer": stream_types.Answer,
 
+    "types.AnswerWithSources": types.AnswerWithSources,
+    "stream_types.AnswerWithSources": stream_types.AnswerWithSources,
+
+    "types.BrandMatch": types.BrandMatch,
+    "stream_types.BrandMatch": stream_types.BrandMatch,
+
+    "types.BrandMatchBatchResult": types.BrandMatchBatchResult,
+    "stream_types.BrandMatchBatchResult": stream_types.BrandMatchBatchResult,
+
+    "types.BrandMatchResult": types.BrandMatchResult,
+    "stream_types.BrandMatchResult": stream_types.BrandMatchResult,
+
+    "types.EvalResult": types.EvalResult,
+    "stream_types.EvalResult": stream_types.EvalResult,
+
     "types.RankingResult": types.RankingResult,
     "stream_types.RankingResult": stream_types.RankingResult,
+
+    "types.RankingResultWithSources": types.RankingResultWithSources,
+    "stream_types.RankingResultWithSources": stream_types.RankingResultWithSources,
 
     "types.Resume": types.Resume,
     "stream_types.Resume": stream_types.Resume,
 
     "types.SentimentResult": types.SentimentResult,
     "stream_types.SentimentResult": stream_types.SentimentResult,
+
+    "types.Source": types.Source,
+    "stream_types.Source": stream_types.Source,
 
 
     "types.Sentiment": types.Sentiment,

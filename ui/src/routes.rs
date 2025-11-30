@@ -19,6 +19,9 @@ pub fn index() -> Template {
         high_risk_count: 0,
         medium_risk_count: 0,
         low_risk_count: 0,
+        llm_match_count: 0,
+        regex_match_count: 0,
+        avg_match_confidence: 0.0,
     });
     
     let recent_mentions = db::get_recent_mentions(10).unwrap_or_default();
@@ -99,6 +102,9 @@ pub fn api_stats() -> Json<DashboardStats> {
         high_risk_count: 0,
         medium_risk_count: 0,
         low_risk_count: 0,
+        llm_match_count: 0,
+        regex_match_count: 0,
+        avg_match_confidence: 0.0,
     });
     
     Json(stats)
@@ -167,6 +173,18 @@ pub fn api_mentions(limit: Option<i32>) -> Json<Vec<BrandMention>> {
     Json(mentions)
 }
 
+#[get("/evaluation-stats")]
+pub fn api_evaluation_stats() -> Json<Vec<EvaluationStats>> {
+    let stats = db::get_evaluation_stats().unwrap_or_default();
+    Json(stats)
+}
+
+#[get("/confidence-distribution")]
+pub fn api_confidence_distribution() -> Json<Vec<(String, i32)>> {
+    let distribution = db::get_confidence_distribution().unwrap_or_default();
+    Json(distribution)
+}
+
 // =====================
 // Route Collections
 // =====================
@@ -193,5 +211,7 @@ pub fn api_routes() -> Vec<Route> {
         api_quality,
         api_sources,
         api_mentions,
+        api_evaluation_stats,
+        api_confidence_distribution,
     ]
 }

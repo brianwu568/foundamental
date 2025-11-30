@@ -3,7 +3,7 @@
 client<llm> CustomGPT4o {
   provider openai
   options {
-    model "gpt-4o"
+    model "gpt-5-nano-2025-08-07"
     api_key env.OPENAI_API_KEY
   }
 }
@@ -12,7 +12,27 @@ client<llm> CustomGPT4oMini {
   provider openai
   retry_policy Exponential
   options {
-    model "gpt-4o-mini"
+    model "gpt-5-nano-2025-08-07"
+    api_key env.OPENAI_API_KEY
+  }
+}
+
+// Ultra-cheap nano model for evaluations
+client<llm> GPTNano {
+  provider openai
+  retry_policy Exponential
+  options {
+    model "gpt-5-nano-2025-08-07"
+    api_key env.OPENAI_API_KEY
+  }
+}
+
+// Alternative: Use GPT-3.5 Turbo as a cheaper eval model
+client<llm> GPT35Turbo {
+  provider openai
+  retry_policy Exponential
+  options {
+    model "gpt-3.5-turbo"
     api_key env.OPENAI_API_KEY
   }
 }

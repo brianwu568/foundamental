@@ -162,7 +162,7 @@ LLM SEO Brand Visibility Report
 YourBrand
 ------------
 
-  OPENAI (gpt-4o-mini)
+  OPENAI (gpt-5-nano-2025-08-07)
     Query: Best vector database for RAG
       #3 - YourBrand
            Leading solution for enterprise RAG implementations...
@@ -171,7 +171,7 @@ Provider Performance Comparison
 ========================================
 Provider        Model           Mentions   Avg Rank   Success Rate
 ----------------------------------------------------------------------
-openai          gpt-4o-mini     2          2.5        100.0%
+openai          gpt-5-nano      2          2.5        100.0%
 ollama          llama3          1          4.0        100.0%
 ```
 
@@ -223,6 +223,6 @@ baml-cli generate
 ## Roadmap
 - [x] Hallucination Filter: Ask models to output URLs/sources and score confidence
 - [x] Competitor graph (co-mention network over time)
-- [ ] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
+- [x] LLM-as-a-judge: Swap out Regular Expressions for a small, cheap model to do evals
 - [ ] Attribution tests
 - [x] Simple UI

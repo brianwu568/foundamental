@@ -43,12 +43,12 @@ def get_providers(with_sources=False):
     """Get list of providers based on mode"""
     if with_sources:
         return [
-            OpenAIProviderWithSources(model="gpt-4o-mini"),
+            OpenAIProviderWithSources(model="gpt-5-nano-2025-08-07"),
             OllamaProviderWithSources(model="llama3"),
         ]
     else:
         return [
-            OpenAIProvider(model="gpt-4o-mini"),
+            OpenAIProvider(model="gpt-5-nano-2025-08-07"),
             OllamaProvider(model="llama3"),
         ]
 

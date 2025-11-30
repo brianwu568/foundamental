@@ -38,7 +38,7 @@ class SentimentResult {
 }
 
 function RankEntities(query: string, k: int) -> RankingResult {
-  client "openai/gpt-4o-mini"
+  client "openai/gpt-5-nano-2025-08-07"
 
   prompt #"
     You are a rankings engine. Given a user query, return the top-K entities
@@ -83,7 +83,7 @@ function RankEntitiesOllama(query: string, k: int) -> RankingResult {
 }
 
 function BrandSentiment(brand: string, passage: string) -> SentimentResult {
-  client "openai/gpt-4o-mini"
+  client "openai/gpt-5-nano-2025-08-07"
 
   prompt #"
     Classify sentiment toward the brand in the passage.
@@ -161,4 +161,160 @@ test sample_sentiment {
       People love AcmeCo's support, but the app is buggy.
     "#
   }
+}
+
+// ============================================================================
+// LLM-as-a-Judge Evaluation Functions
+// ============================================================================
+
+// Result of brand matching evaluation
+class BrandMatchResult {
+  is_match bool @description("Whether the text refers to the target brand")
+  confidence float @description("Confidence score from 0.0 to 1.0")
+  matched_alias string? @description("The specific alias or variation that was matched, if any")
+  reasoning string @description("Brief explanation of why this is or isn't a match")
+}
+
+// Result of evaluating multiple brands against a text
+class BrandMatchBatchResult {
+  matches BrandMatch[]
+}
+
+class BrandMatch {
+  brand_name string @description("The brand being evaluated")
+  is_match bool
+  confidence float
+  matched_text string? @description("The specific text that matched the brand")
+  reasoning string
+}
+
+// Evaluation result for comparing expected vs actual output
+class EvalResult {
+  passed bool @description("Whether the evaluation passed")
+  score float @description("Score from 0.0 to 1.0")
+  feedback string @description("Detailed feedback on the evaluation")
+  issues string[] @description("List of specific issues found, if any")
+}
+
+// Function to check if a text mentions a specific brand (using cheap model)
+function EvalBrandMatch(text: string, brand_name: string, brand_aliases: string[]) -> BrandMatchResult {
+  client CustomGPT4oMini
+  
+  prompt #"
+    You are an evaluation judge for brand mention detection.
+    
+    Determine if the given text refers to the target brand. Consider:
+    - Exact name matches
+    - Known aliases and variations
+    - Partial matches (e.g., "OpenAI's product" mentions "OpenAI")
+    - Common misspellings or abbreviations
+    - Context clues that clearly indicate the brand
+    
+    Target Brand: {{ brand_name }}
+    Known Aliases: {{ brand_aliases }}
+    
+    Text to evaluate:
+    {{ text }}
+    
+    Return your evaluation as JSON matching the schema.
+    Be generous with partial matches but confident about exact matches.
+    
+    {{ ctx.output_format }}
+  "#
+}
+
+// Function to evaluate brand matches using Ollama (free local model)
+function EvalBrandMatchOllama(text: string, brand_name: string, brand_aliases: string[]) -> BrandMatchResult {
+  client OllamaLocal
+  
+  prompt #"
+    You are an evaluation judge for brand mention detection.
+    
+    Determine if the given text refers to the target brand. Consider:
+    - Exact name matches
+    - Known aliases and variations
+    - Partial matches (e.g., "OpenAI's product" mentions "OpenAI")
+    - Common misspellings or abbreviations
+    - Context clues that clearly indicate the brand
+    
+    Target Brand: {{ brand_name }}
+    Known Aliases: {{ brand_aliases }}
+    
+    Text to evaluate:
+    {{ text }}
+    
+    Return your evaluation as JSON matching the schema.
+    Be generous with partial matches but confident about exact matches.
+    
+    {{ ctx.output_format }}
+  "#
+}
+
+// Batch evaluation of multiple brands against a single text
+function EvalBrandMatchBatch(text: string, brands: string[]) -> BrandMatchBatchResult {
+  client CustomGPT4oMini
+  
+  prompt #"
+    You are an evaluation judge for brand mention detection.
+    
+    Given a text, determine which of the provided brands are mentioned.
+    Consider exact matches, partial matches, abbreviations, and context clues.
+    
+    Brands to check: {{ brands }}
+    
+    Text to evaluate:
+    {{ text }}
+    
+    For each brand, provide:
+    - Whether it's mentioned (is_match)
+    - Confidence score (0.0 to 1.0)
+    - The specific text that matched (if any)
+    - Brief reasoning
+    
+    {{ ctx.output_format }}
+  "#
+}
+
+// General evaluation function for comparing expected vs actual outputs
+function EvalOutput(expected: string, actual: string, criteria: string) -> EvalResult {
+  client CustomGPT4oMini
+  
+  prompt #"
+    You are an evaluation judge comparing expected vs actual outputs.
+    
+    Evaluation Criteria: {{ criteria }}
+    
+    Expected Output:
+    {{ expected }}
+    
+    Actual Output:
+    {{ actual }}
+    
+    Evaluate how well the actual output matches the expected output based on the criteria.
+    Consider semantic similarity, not just exact string matching.
+    
+    {{ ctx.output_format }}
+  "#
+}
+
+// Evaluation function using Ollama for free local evaluation
+function EvalOutputOllama(expected: string, actual: string, criteria: string) -> EvalResult {
+  client OllamaLocal
+  
+  prompt #"
+    You are an evaluation judge comparing expected vs actual outputs.
+    
+    Evaluation Criteria: {{ criteria }}
+    
+    Expected Output:
+    {{ expected }}
+    
+    Actual Output:
+    {{ actual }}
+    
+    Evaluate how well the actual output matches the expected output based on the criteria.
+    Consider semantic similarity, not just exact string matching.
+    
+    {{ ctx.output_format }}
+  "#
 }

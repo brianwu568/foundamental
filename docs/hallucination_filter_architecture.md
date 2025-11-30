@@ -137,7 +137,7 @@ Step 3: Reporting (--report)
 │                                          │
 │  Provider Comparison:                    │
 │  Provider  Model      Avg Rel  High Risk│
-│  openai    gpt-4o     0.75     0        │
+│  openai    gpt-5-nano     0.75     0    │
 │  ollama    llama3     0.61     2        │
 │                                          │
 │  High Risk Mentions:                     │

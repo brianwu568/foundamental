@@ -10,6 +10,9 @@ pub struct BrandMention {
     pub rank_position: i32,
     pub explanation: Option<String>,
     pub response_id: i64,
+    pub match_method: Option<String>,
+    pub match_confidence: Option<f64>,
+    pub match_reasoning: Option<String>,
 }
 
 /// LLM Provider response record
@@ -172,6 +175,23 @@ pub struct DashboardStats {
     pub high_risk_count: i32,
     pub medium_risk_count: i32,
     pub low_risk_count: i32,
+    pub llm_match_count: i32,
+    pub regex_match_count: i32,
+    pub avg_match_confidence: f64,
+}
+
+/// LLM Evaluation statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvaluationStats {
+    pub id: i64,
+    pub run_id: i64,
+    pub eval_method: String,
+    pub total_evaluations: i32,
+    pub avg_confidence: f64,
+    pub high_confidence_count: i32,
+    pub low_confidence_count: i32,
+    pub fallback_count: i32,
+    pub timestamp: f64,
 }
 
 /// Temporal graph snapshot

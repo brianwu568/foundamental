@@ -46,15 +46,46 @@ class Sentiment(str, Enum):
     Negative = "Negative"
 
 # #########################################################################
-# Generated classes (4)
+# Generated classes (11)
 # #########################################################################
 
 class Answer(BaseModel):
     name: str
     why: str
 
+class AnswerWithSources(BaseModel):
+    name: str
+    why: str
+    sources: typing.List["Source"]
+    confidence: float
+
+class BrandMatch(BaseModel):
+    brand_name: str
+    is_match: bool
+    confidence: float
+    matched_text: typing.Optional[str] = None
+    reasoning: str
+
+class BrandMatchBatchResult(BaseModel):
+    matches: typing.List["BrandMatch"]
+
+class BrandMatchResult(BaseModel):
+    is_match: bool
+    confidence: float
+    matched_alias: typing.Optional[str] = None
+    reasoning: str
+
+class EvalResult(BaseModel):
+    passed: bool
+    score: float
+    feedback: str
+    issues: typing.List[str]
+
 class RankingResult(BaseModel):
     answers: typing.List["Answer"]
+
+class RankingResultWithSources(BaseModel):
+    answers: typing.List["AnswerWithSources"]
 
 class Resume(BaseModel):
     name: str
@@ -65,6 +96,11 @@ class Resume(BaseModel):
 class SentimentResult(BaseModel):
     sentiment: Sentiment
     confidence: float
+
+class Source(BaseModel):
+    url: str
+    title: typing.Optional[str] = None
+    description: typing.Optional[str] = None
 
 # #########################################################################
 # Generated type aliases (0)

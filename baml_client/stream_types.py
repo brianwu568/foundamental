@@ -23,15 +23,46 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
-# Generated classes (4)
+# Generated classes (11)
 # #########################################################################
 
 class Answer(BaseModel):
     name: typing.Optional[str] = None
     why: typing.Optional[str] = None
 
+class AnswerWithSources(BaseModel):
+    name: typing.Optional[str] = None
+    why: typing.Optional[str] = None
+    sources: typing.List["Source"]
+    confidence: typing.Optional[float] = None
+
+class BrandMatch(BaseModel):
+    brand_name: typing.Optional[str] = None
+    is_match: typing.Optional[bool] = None
+    confidence: typing.Optional[float] = None
+    matched_text: typing.Optional[str] = None
+    reasoning: typing.Optional[str] = None
+
+class BrandMatchBatchResult(BaseModel):
+    matches: typing.List["BrandMatch"]
+
+class BrandMatchResult(BaseModel):
+    is_match: typing.Optional[bool] = None
+    confidence: typing.Optional[float] = None
+    matched_alias: typing.Optional[str] = None
+    reasoning: typing.Optional[str] = None
+
+class EvalResult(BaseModel):
+    passed: typing.Optional[bool] = None
+    score: typing.Optional[float] = None
+    feedback: typing.Optional[str] = None
+    issues: typing.List[str]
+
 class RankingResult(BaseModel):
     answers: typing.List["Answer"]
+
+class RankingResultWithSources(BaseModel):
+    answers: typing.List["AnswerWithSources"]
 
 class Resume(BaseModel):
     name: typing.Optional[str] = None
@@ -42,6 +73,11 @@ class Resume(BaseModel):
 class SentimentResult(BaseModel):
     sentiment: typing.Optional[types.Sentiment] = None
     confidence: typing.Optional[float] = None
+
+class Source(BaseModel):
+    url: typing.Optional[str] = None
+    title: typing.Optional[str] = None
+    description: typing.Optional[str] = None
 
 # #########################################################################
 # Generated type aliases (0)

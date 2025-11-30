@@ -63,6 +63,37 @@
     
     <div class="card">
         <div class="card-header">
+            <h3>🤖 LLM-as-a-Judge Stats</h3>
+        </div>
+        <div class="card-content">
+            <div class="match-method-stats">
+                <div class="method-item method-llm">
+                    <span class="method-count">{{ stats.llm_match_count }}</span>
+                    <span class="method-label">LLM Matches</span>
+                </div>
+                <div class="method-item method-regex">
+                    <span class="method-count">{{ stats.regex_match_count }}</span>
+                    <span class="method-label">Regex Matches</span>
+                </div>
+            </div>
+            {% if stats.avg_match_confidence > 0 %}
+            <div class="confidence-score">
+                <div class="score-circle confidence-circle" data-score="{{ stats.avg_match_confidence }}">
+                    <span class="score-value">{{ stats.avg_match_confidence | round(precision=2) }}</span>
+                </div>
+                <p>Avg Match Confidence</p>
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <p class="muted">No LLM evaluations yet</p>
+                <p class="muted small">Enable with USE_LLM_MATCHING=true</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
             <h3>⚡ Provider Performance</h3>
             <a href="/providers" class="view-all">View All →</a>
         </div>
@@ -106,6 +137,7 @@
                         <th>Brand</th>
                         <th>Alias Used</th>
                         <th>Rank</th>
+                        <th>Match</th>
                         <th>Explanation</th>
                     </tr>
                 </thead>
@@ -118,6 +150,17 @@
                             <span class="rank-badge rank-{{ mention.rank_position }}">
                                 #{{ mention.rank_position }}
                             </span>
+                        </td>
+                        <td>
+                            {% if mention.match_method == "llm" %}
+                                <span class="match-badge match-llm" title="{{ mention.match_reasoning | default(value='') }}">
+                                    🤖 {{ mention.match_confidence | default(value=0) | round(precision=2) }}
+                                </span>
+                            {% else %}
+                                <span class="match-badge match-regex">
+                                    📝 Regex
+                                </span>
+                            {% endif %}
                         </td>
                         <td class="explanation-cell">
                             {% if mention.explanation %}
