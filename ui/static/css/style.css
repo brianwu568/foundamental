@@ -736,6 +736,93 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-muted);
 }
 
+.small {
+    font-size: 0.75rem;
+}
+
+/* =====================
+   LLM Evaluation Styles
+   ===================== */
+.match-method-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 20px;
+}
+
+.method-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.method-count {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.method-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.method-item.method-llm .method-count { color: var(--accent-purple); }
+.method-item.method-regex .method-count { color: var(--accent-blue); }
+
+.confidence-score {
+    text-align: center;
+    padding: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.confidence-circle {
+    width: 80px;
+    height: 80px;
+    border-width: 6px;
+    border-color: var(--accent-purple);
+}
+
+.confidence-circle .score-value {
+    font-size: 1.25rem;
+}
+
+.match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: help;
+}
+
+.match-badge.match-llm {
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--accent-purple);
+}
+
+.match-badge.match-regex {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--accent-blue);
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state-small p {
+    margin: 4px 0;
+}
+
+/* Confidence indicator colors */
+.confidence-high { color: var(--accent-green); }
+.confidence-medium { color: var(--accent-yellow); }
+.confidence-low { color: var(--accent-red); }
+
 /* =====================
    Success Rate Bar
    ===================== */
