@@ -25,9 +25,10 @@ git clone <repository-url>
 cd foundamental
 ```
 
-2. **Install dependencies:**
+2. **Install dependencies and activate the virtual environment:**
 ```bash
-pip install -r requirements.txt
+uv sync
+source .venv/bin/activate
 ```
 
 3. **Setup environment:**
